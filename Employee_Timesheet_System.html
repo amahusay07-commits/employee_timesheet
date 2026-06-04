@@ -9,7 +9,9 @@
 :root{--navy:#0f1f3d;--blue:#1a56a0;--blue-lt:#e8f0fb;--green:#1a7f4b;--green-bg:#e6f4ed;--red:#c8102e;--red-bg:#fde8eb;--amber:#8a6000;--amber-bg:#fff8e1;--gray:#f4f6f9;--border:#d0d8e8;--muted:#5a6a85;--text:#1a2236;--white:#fff;--radius:6px;font-family:'IBM Plex Sans',sans-serif;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:#eef1f7;color:var(--text);min-height:100vh;font-size:13px;}
-#authScreen{position:fixed;inset:0;background:#162848;display:flex;align-items:center;justify-content:center;z-index:999;}
+#authScreen{position:fixed;inset:0;background:#0d1b2e;display:flex;align-items:center;justify-content:center;z-index:999;overflow:hidden;}
+#bgCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.auth-box{position:relative;z-index:1;}
 .auth-box{background:#fff;border-radius:12px;padding:36px 32px;width:100%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
 .auth-logo{width:50px;height:50px;background:var(--navy);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.5rem;}
 .auth-box h2{font-size:1rem;font-weight:600;color:var(--navy);margin-bottom:4px;}
@@ -120,7 +122,7 @@ select.form-ctrl{background:#fff;}
 </style>
 </head>
 <body>
-<div id="authScreen">
+<div id="authScreen"><canvas id="bgCanvas"></canvas>
   <div class="auth-box">
     <div class="auth-logo">📋</div>
     <h2>Employee Timesheet System</h2>
@@ -242,10 +244,22 @@ const S=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const getR=()=>G('ts_r',[]);const setR=v=>S('ts_r',v);
 const getT=()=>G('ts_t',[]);const setT=v=>S('ts_t',v);
 let CU=null,WO=0,RJID=null,RJTYPE='req',ED=null,CV='ts';
-function getFri(o){const d=new Date();const dy=d.getDay();const df=dy>=5?dy-5:dy+2;d.setDate(d.getDate()-df+o*7);d.setHours(0,0,0,0);return d;}
+function getFri(o){
+  const now=new Date();
+  const dy=now.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  // Days since last Friday
+  const sinceF = dy>=5 ? dy-5 : dy+2;
+  const d=new Date(now);
+  d.setDate(now.getDate()-sinceF+o*7);
+  d.setHours(0,0,0,0);
+  return d;
+}
 function getDates(o){const f=getFri(o);return DK.map((_,i)=>{const d=new Date(f);d.setDate(f.getDate()+i);return d;});}
 function wk(o){return iso(getFri(o));}
-function iso(d){return d.toISOString().split('T')[0];}
+function iso(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 function fm(d){return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();}
 function fs(d){return (d.getMonth()+1)+'/'+d.getDate();}
 function wkLabel(o){const ds=getDates(o);return fm(ds[0])+' 12:00 AM - '+fm(ds[6])+' 11:59 PM';}
@@ -265,7 +279,35 @@ function doLogout(){
   document.getElementById('appScreen').classList.remove('show');
   document.getElementById('authUser').value='';document.getElementById('authPass').value='';document.getElementById('authErr').textContent='';
 }
+
+// ── DATA MIGRATION: normalize all wk keys to local Friday ───────────────────
+function normalizeFriday(dateStr){
+  if(!dateStr) return dateStr;
+  const d = new Date(dateStr+'T12:00:00'); // use noon to avoid DST issues
+  const dy = d.getDay();
+  const sinceF = dy>=5 ? dy-5 : dy+2;
+  d.setDate(d.getDate()-sinceF);
+  return iso(d);
+}
+function migrateData(){
+  const reqs = getR();
+  let changed = false;
+  reqs.forEach(r=>{
+    const norm = normalizeFriday(r.wk);
+    if(norm && norm !== r.wk){ r.wk = norm; changed = true; }
+  });
+  if(changed){ setR(reqs); }
+  const tls = getT();
+  let changed2 = false;
+  tls.forEach(t=>{
+    const norm = normalizeFriday(t.wk);
+    if(norm && norm !== t.wk){ t.wk = norm; changed2 = true; }
+  });
+  if(changed2){ setT(tls); }
+}
+
 function initApp(){
+  migrateData();
   document.getElementById('hdrUser').textContent='Welcome, '+CU.name.split(',')[1].trim()+'  |  '+CU.email;
   if(CU.role==='admin'){
     document.getElementById('hdrTitle').textContent='Timesheet Manager — Admin';
@@ -291,7 +333,12 @@ function sv(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classLis
 function sv2(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');if(v==='ts')renderTS();else renderMyReqs();}
 function renderTS(){
   const w=wk(WO),ds=getDates(WO);
-  const reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  const reqs=getR().filter(r=>{
+    if(r.emp!==CU.username||r.status!=='approved') return false;
+    // Use normalized Friday for comparison
+    const rNorm = normalizeFriday(r.wk);
+    return rNorm===w;
+  });
   const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
   const dt={};DK.forEach(d=>dt[d]=0);
   reqs.forEach(r=>DK.forEach(d=>{dt[d]+=(r.hrs[d]||0);}));
@@ -317,7 +364,7 @@ function renderTS(){
   document.getElementById('btnSend').disabled=!canSend;
   document.getElementById('mainArea').innerHTML=`${abar}
     <div class="week-nav-bar">
-      <div style="font-size:.76rem;color:var(--muted);">Period: <strong style="color:var(--navy);">${wkLabel(WO)}</strong></div>
+      <div style="font-size:.76rem;color:var(--muted);">Period: <strong style="color:var(--navy);">${wkLabel(WO)}</strong> <span style="font-size:.65rem;color:var(--muted);">(wk: ${w})</span></div>
       <div style="display:flex;align-items:center;gap:6px;">
         <button class="wn-btn" onclick="changeWeek(-1)">&#9664;</button>
         <span class="wk-label">${wkShort(WO)}</span>
@@ -362,7 +409,7 @@ function changeWeek(d){WO+=d;renderTS();}
 function openTaskModal(eid){
   ED=eid||null;
   document.getElementById('tModalTitle').textContent=eid?'Edit Task Request':'Add Task Request';
-  document.getElementById('fWeek').value=iso(getFri(WO));
+  document.getElementById('fWeek').value=iso(getFri(WO)); // sets to current week Friday
   let hg='';
   DAYS.forEach((d,i)=>{hg+=`<div class="hour-cell"><label>${d}</label><input type="number" min="0" max="24" step="0.5" id="fh_${DK[i]}" placeholder="0"></div>`;});
   document.getElementById('hoursGrid').innerHTML=hg;
@@ -381,21 +428,28 @@ function submitTask(){
   const hrs={};DK.forEach(d=>{hrs[d]=parseFloat(document.getElementById('fh_'+d).value)||0;});
   if(DK.reduce((s,d)=>s+hrs[d],0)===0){err.textContent='Enter hours for at least one day.';return;}
   const reqs=getR();
-  if(ED){const i=reqs.findIndex(r=>r.id===ED);if(i>-1)reqs[i]={...reqs[i],task,proj,ttype,wk:wkv,hrs,status:'pending',ua:new Date().toISOString()};showToast('Updated!');}
-  else{reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:wkv,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
+  if(ED){const i=reqs.findIndex(r=>r.id===ED);const wkvDate2=new Date(wkv+'T00:00:00');const wkvDay2=wkvDate2.getDay();const wkvSF2=wkvDay2>=5?wkvDay2-5:wkvDay2+2;wkvDate2.setDate(wkvDate2.getDate()-wkvSF2);const normWk2=iso(wkvDate2);
+    if(i>-1)reqs[i]={...reqs[i],task,proj,ttype,wk:normWk2,hrs,status:'pending',ua:new Date().toISOString()};showToast('Updated!');}
+  else{// Normalize wkv to the actual Friday of that week
+  const wkvDate = new Date(wkv+'T00:00:00');
+  const wkvDay = wkvDate.getDay();
+  const wkvSinceF = wkvDay>=5 ? wkvDay-5 : wkvDay+2;
+  wkvDate.setDate(wkvDate.getDate()-wkvSinceF);
+  const normWk = iso(wkvDate);
+  reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:normWk,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
   setR(reqs);closeModal('taskModal');
   if(CV==='ts')renderTS();else renderMyReqs();
 }
 function saveTS(){showToast('Saved as draft.');}
 function openSendModal(){
-  const w=wk(WO),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  const w=wk(WO),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&normalizeFriday(r.wk)===w);
   if(reqs.length===0){showToast('No approved tasks to send.');return;}
   const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
   document.getElementById('sendMsg').textContent=`Send your timesheet for the period "${wkLabel(WO)}" to the admin? Total hours: ${th}h`;
   document.getElementById('sendModal').classList.add('open');
 }
 function confirmSend(){
-  const w=wk(WO),tl=getT(),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  const w=wk(WO),tl=getT(),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&normalizeFriday(r.wk)===w);
   const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
   const ei=tl.findIndex(t=>t.emp===CU.username&&t.wk===w);
   const en={id:'ts'+Date.now(),emp:CU.username,empName:CU.name,wk:w,wkLabel:wkLabel(WO),th,status:'sent',sentAt:new Date().toISOString()};
@@ -478,6 +532,166 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 let tt;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3000);}
 document.getElementById('authUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('authPass').focus();});
+
+// ── ANIMATED BACKGROUND ──────────────────────────────────────────────────────
+(function(){
+  const canvas = document.getElementById('bgCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, icons, particles, lines;
+
+  // Icon definitions: emoji-based icons representing work/finance/tech
+  const ICON_SET = [
+    '💻','🖥️','⚙️','🔧','🖨️','📊','📈','💰','💳','🗂️',
+    '📋','🔒','☁️','📡','🖱️','⌨️','📱','🏦','💵','🔑',
+    '📂','🗄️','⚡','🔌','💡','📌','✅','🖇️','🗓️','📝'
+  ];
+
+  function resize(){
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    init();
+  }
+
+  function init(){
+    // Floating icons
+    icons = Array.from({length: 28}, () => ({
+      icon: ICON_SET[Math.floor(Math.random()*ICON_SET.length)],
+      x: Math.random()*W, y: Math.random()*H,
+      vx: (Math.random()-0.5)*0.35,
+      vy: (Math.random()-0.5)*0.35,
+      size: Math.random()*18+14,
+      alpha: Math.random()*0.18+0.06,
+      rot: Math.random()*Math.PI*2,
+      vrot: (Math.random()-0.5)*0.008
+    }));
+
+    // Small dot particles
+    particles = Array.from({length: 60}, () => ({
+      x: Math.random()*W, y: Math.random()*H,
+      vx: (Math.random()-0.5)*0.5,
+      vy: (Math.random()-0.5)*0.5,
+      r: Math.random()*1.8+0.5,
+      alpha: Math.random()*0.35+0.1,
+      color: Math.random()<0.5 ? '#4a9eff' : '#f0a500'
+    }));
+
+    // Grid nodes for circuit lines
+    const COLS = Math.ceil(W/90)+1, ROWS = Math.ceil(H/90)+1;
+    lines = [];
+    for(let r=0; r<ROWS; r++){
+      for(let c=0; c<COLS; c++){
+        if(Math.random()<0.35){
+          const dir = Math.random()<0.5 ? 'h' : 'v';
+          lines.push({
+            x: c*90, y: r*90,
+            len: (Math.floor(Math.random()*3)+1)*90,
+            dir,
+            alpha: Math.random()*0.12+0.03,
+            pulse: Math.random()*Math.PI*2,
+            speed: Math.random()*0.02+0.005
+          });
+        }
+      }
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // Background gradient
+    const bg = ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,'#070e1c');
+    bg.addColorStop(0.5,'#0d1b2e');
+    bg.addColorStop(1,'#040a14');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+
+    // Radial glow — blue bottom right
+    const g1 = ctx.createRadialGradient(W,H,0,W*0.85,H*0.85,W*0.5);
+    g1.addColorStop(0,'rgba(26,86,160,0.18)');
+    g1.addColorStop(1,'rgba(26,86,160,0)');
+    ctx.fillStyle=g1; ctx.fillRect(0,0,W,H);
+
+    // Radial glow — amber top left
+    const g2 = ctx.createRadialGradient(0,0,0,W*0.15,H*0.15,W*0.4);
+    g2.addColorStop(0,'rgba(240,165,0,0.12)');
+    g2.addColorStop(1,'rgba(240,165,0,0)');
+    ctx.fillStyle=g2; ctx.fillRect(0,0,W,H);
+
+    // Circuit grid lines
+    lines.forEach(l => {
+      l.pulse += l.speed;
+      const a = l.alpha * (0.6 + Math.sin(l.pulse)*0.4);
+      ctx.beginPath();
+      if(l.dir==='h'){ ctx.moveTo(l.x,l.y); ctx.lineTo(l.x+l.len,l.y); }
+      else { ctx.moveTo(l.x,l.y); ctx.lineTo(l.x,l.y+l.len); }
+      ctx.strokeStyle = `rgba(74,158,255,${a})`;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+      // node dot at junction
+      ctx.beginPath();
+      ctx.arc(l.x, l.y, 1.8, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(74,158,255,${a*1.5})`;
+      ctx.fill();
+    });
+
+    // Particles
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0) p.x=W; if(p.x>W) p.x=0;
+      if(p.y<0) p.y=H; if(p.y>H) p.y=0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = p.color.replace(')',`,${p.alpha})`).replace('rgb','rgba');
+      const c = p.color==='#4a9eff'?'74,158,255':'240,165,0';
+      ctx.fillStyle = `rgba(${c},${p.alpha})`;
+      ctx.fill();
+    });
+
+    // Particle connections
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<100){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(74,158,255,${(1-dist/100)*0.12})`;
+          ctx.lineWidth=0.5;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Floating icons
+    icons.forEach(ic => {
+      ic.x += ic.vx; ic.y += ic.vy; ic.rot += ic.vrot;
+      if(ic.x < -40) ic.x = W+40;
+      if(ic.x > W+40) ic.x = -40;
+      if(ic.y < -40) ic.y = H+40;
+      if(ic.y > H+40) ic.y = -40;
+      ctx.save();
+      ctx.translate(ic.x, ic.y);
+      ctx.rotate(ic.rot);
+      ctx.globalAlpha = ic.alpha;
+      ctx.font = `${ic.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ic.icon, 0, 0);
+      ctx.restore();
+    });
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  draw();
+})();
+
 </script>
 </body>
 </html>
