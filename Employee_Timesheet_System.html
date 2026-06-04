@@ -379,7 +379,7 @@ function renderTS(){
   const totH=DK.reduce((s,d)=>s+dt[d],0);
   let abar='';
   if(ts){
-    if(ts.status==='approved') abar=`<div class="approval-bar">&#9432; Your timesheet has been approved by <strong>${ts.approvedBy||'Admin'}</strong>. &nbsp;<strong>Total: ${totH}h</strong> &nbsp;&nbsp;<strong>Period:</strong> ${wkLabel(WO)}</div>`;
+    if(ts.status==='approved'&&ts.sentAt) abar=`<div class="approval-bar">&#9432; Your timesheet has been approved by <strong>${ts.approvedBy||'Admin'}</strong>. &nbsp;<strong>Total: ${totH}h</strong> &nbsp;&nbsp;<strong>Period:</strong> ${wkLabel(WO)}</div>`;
     else if(ts.status==='sent') abar=`<div class="approval-bar" style="background:#fffbe6;border-color:#f0c040;color:#7a5000;">&#9203; Timesheet sent — awaiting admin approval. &nbsp;<strong>Total: ${totH}h</strong></div>`;
   }
   let rows='';
@@ -387,7 +387,7 @@ function renderTS(){
     rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Click <strong>Add Row</strong> in the ribbon to submit a task request.</td></tr>`;
   } else {
     reqs.forEach(r=>{
-      const isLocked=!!(ts&&(ts.status==='sent'||ts.status==='approved'));
+      const isLocked=false; // Hours always editable until timesheet is sent
       const cells=DK.map((d,i)=>{
         const h=r.hrs[d]||0;
         const wk2=(i===1||i===2);
@@ -411,7 +411,7 @@ function renderTS(){
     rows+=`<tr class="total-row"><td></td><td></td><td style="text-align:right;color:var(--muted);padding-right:8px;">Total work</td><td></td>${tc}</tr>`;
   }
   const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]}<br><span style="font-size:.58rem;font-weight:400;">${fs(d)}</span></th>`).join('');
-  const canSend=reqs.length>0&&(!ts||ts.status==='draft');
+  const canSend=reqs.length>0&&(!ts||ts.status==='draft'||ts.status==='approved');
   document.getElementById('btnSend').disabled=!canSend;
   document.getElementById('mainArea').innerHTML=`${abar}
     <div class="week-nav-bar">
