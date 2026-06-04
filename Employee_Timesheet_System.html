@@ -320,6 +320,7 @@ function normalizeFriday(dateStr){
   return iso(d);
 }
 function migrateData(){
+  // Fix request wk keys
   const reqs = getR();
   let changed = false;
   reqs.forEach(r=>{
@@ -327,13 +328,21 @@ function migrateData(){
     if(norm && norm !== r.wk){ r.wk = norm; changed = true; }
   });
   if(changed){ setR(reqs); }
+
+  // Fix timesheet wk keys AND remove ghost records (approved without sentAt)
   const tls = getT();
   let changed2 = false;
-  tls.forEach(t=>{
+  const cleanTls = tls.filter(t=>{
+    // Remove ghost approved timesheets that were never sent by employee
+    if(t.status==='approved' && (!t.sentAt || t.sentAt==='')){
+      changed2 = true;
+      return false;
+    }
     const norm = normalizeFriday(t.wk);
     if(norm && norm !== t.wk){ t.wk = norm; changed2 = true; }
+    return true;
   });
-  if(changed2){ setT(tls); }
+  if(changed2){ setT(cleanTls); }
 }
 
 function initApp(){
@@ -379,7 +388,7 @@ function renderTS(){
   const totH=DK.reduce((s,d)=>s+dt[d],0);
   let abar='';
   if(ts){
-    if(ts.status==='approved'&&ts.sentAt) abar=`<div class="approval-bar">&#9432; Your timesheet has been approved by <strong>${ts.approvedBy||'Admin'}</strong>. &nbsp;<strong>Total: ${totH}h</strong> &nbsp;&nbsp;<strong>Period:</strong> ${wkLabel(WO)}</div>`;
+    if(ts && ts.status==='approved' && ts.sentAt && ts.sentAt!=='') abar=`<div class="approval-bar">&#9432; Your timesheet has been approved by <strong>${ts.approvedBy||'Admin'}</strong>. &nbsp;<strong>Total: ${totH}h</strong> &nbsp;&nbsp;<strong>Period:</strong> ${wkLabel(WO)}</div>`;
     else if(ts.status==='sent') abar=`<div class="approval-bar" style="background:#fffbe6;border-color:#f0c040;color:#7a5000;">&#9203; Timesheet sent — awaiting admin approval. &nbsp;<strong>Total: ${totH}h</strong></div>`;
   }
   let rows='';
@@ -387,7 +396,7 @@ function renderTS(){
     rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Click <strong>Add Row</strong> in the ribbon to submit a task request.</td></tr>`;
   } else {
     reqs.forEach(r=>{
-      const isLocked=!!(ts && ts.status==='approved' && ts.sentAt);
+      const isLocked=!!(ts && ts.status==='approved' && ts.sentAt && ts.sentAt!=='');
       const cells=DK.map((d,i)=>{
         const h=r.hrs[d]||0;
         const wk2=(i===1||i===2);
@@ -411,7 +420,7 @@ function renderTS(){
     rows+=`<tr class="total-row"><td></td><td></td><td style="text-align:right;color:var(--muted);padding-right:8px;">Total work</td><td></td>${tc}</tr>`;
   }
   const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]}<br><span style="font-size:.58rem;font-weight:400;">${fs(d)}</span></th>`).join('');
-  const canSend=reqs.length>0&&(!ts||ts.status==='draft'||ts.status==='approved');
+  const canSend=reqs.length>0&&(!ts||ts.status==='draft'||!ts.sentAt);
   document.getElementById('btnSend').disabled=!canSend;
   document.getElementById('mainArea').innerHTML=`${abar}
     <div class="week-nav-bar">
@@ -420,7 +429,7 @@ function renderTS(){
         <button class="wn-btn" onclick="changeWeek(-1)">&#9664;</button>
         <span class="wk-label">${wkShort(WO)}</span>
         <button class="wn-btn" onclick="changeWeek(1)">&#9654;</button>
-        <span class="badge ${ts?ts.status:'draft'}" style="margin-left:5px;">${ts?ts.status:'draft'}</span>
+        <span class="badge ${!ts||ts.status==='draft'||( ts.status==='approved'&&!ts.sentAt)?'draft':ts.status}" style="margin-left:5px;">${!ts||ts.status==='draft'||(ts.status==='approved'&&!ts.sentAt)?'draft':ts.status}</span>
       </div>
     </div>
     <div class="ts-container">
