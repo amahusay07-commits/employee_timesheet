@@ -107,11 +107,7 @@ table.ts input[type=checkbox]{width:13px;height:13px;cursor:pointer;}
 select.form-ctrl{background:#fff;}
 .modal-btns{display:flex;gap:6px;justify-content:flex-end;margin-top:14px;padding-top:11px;border-top:1px solid var(--border);}
 .modal-err{color:var(--red);font-size:.7rem;min-height:14px;margin-top:5px;font-weight:500;}
-.hours-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;}
-.hour-cell{text-align:center;}
-.hour-cell label{font-size:.62rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;}
-.hour-cell input{width:100%;padding:5px 3px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.78rem;outline:none;}
-.hour-cell input:focus{border-color:var(--blue);}
+
 .toast{position:fixed;bottom:18px;right:18px;background:var(--navy);color:#fff;padding:9px 15px;border-radius:6px;font-size:.78rem;font-weight:500;z-index:9999;transform:translateY(50px);opacity:0;transition:all .3s;max-width:260px;}
 .toast.show{transform:translateY(0);opacity:1;}
 .hdr-right{display:flex;align-items:center;gap:8px;padding:6px 16px;background:var(--navy);color:#fff;font-size:.72rem;flex-shrink:0;}
@@ -192,10 +188,7 @@ select.form-ctrl{background:#fff;}
         <input class="form-ctrl" id="fWeek" type="date">
       </div>
     </div>
-    <div style="padding:9px 11px;background:var(--gray);border-radius:5px;margin-top:9px;">
-      <div style="font-size:.62rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Hours per day</div>
-      <div class="hours-grid" id="hoursGrid"></div>
-    </div>
+
     <div class="modal-err" id="taskErr"></div>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="closeModal('taskModal')">Cancel</button>
@@ -353,7 +346,7 @@ function renderTS(){
     rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Click <strong>Add Row</strong> in the ribbon to submit a task request.</td></tr>`;
   } else {
     reqs.forEach(r=>{
-      const cells=DK.map((d,i)=>{const h=r.hrs[d]||0;const wk2=(i===1||i===2);return `<td class="hrs${h?' ':'  empty'}${wk2?' wknd':''}">${h||''}</td>`;}).join('');
+      const cells=DK.map((d,i)=>{const h=r.hrs[d]||0;const wk2=(i===1||i===2);const isLocked=!!(ts&&(ts.status==='sent'||ts.status==='approved'));return `<td class="hrs${wk2?' wknd':''}">${isLocked?(h||''):`<input type="number" min="0" max="24" step="0.5" value="${h||''}" placeholder="" onchange="updateHrs('${r.id}','${DK[i]}',this.value)" style="width:44px;padding:3px 4px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.78rem;outline:none;background:#fff;" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">`}</td>`;}).join('');
       rows+=`<tr><td style="width:26px;text-align:center;"><input type="checkbox"></td><td class="task-name">${r.task}</td><td class="project">${r.proj}</td><td class="ttype">${r.ttype}</td>${cells}</tr>`;
     });
     const tc=DK.map((d,i)=>{const wk2=(i===1||i===2);return `<td class="hrs${wk2?' wknd':''}">${dt[d]||''}</td>`;}).join('');
@@ -410,10 +403,8 @@ function openTaskModal(eid){
   ED=eid||null;
   document.getElementById('tModalTitle').textContent=eid?'Edit Task Request':'Add Task Request';
   document.getElementById('fWeek').value=iso(getFri(WO)); // sets to current week Friday
-  let hg='';
-  DAYS.forEach((d,i)=>{hg+=`<div class="hour-cell"><label>${d}</label><input type="number" min="0" max="24" step="0.5" id="fh_${DK[i]}" placeholder="0"></div>`;});
-  document.getElementById('hoursGrid').innerHTML=hg;
-  if(eid){const r=getR().find(r=>r.id===eid);if(r){document.getElementById('fTask').value=r.task;document.getElementById('fProj').value=r.proj;document.getElementById('fType').value=r.ttype;document.getElementById('fWeek').value=r.wk;DK.forEach(d=>{const el=document.getElementById('fh_'+d);if(el)el.value=r.hrs[d]||'';});}}
+
+  if(eid){const r=getR().find(r=>r.id===eid);if(r){document.getElementById('fTask').value=r.task;document.getElementById('fProj').value=r.proj;document.getElementById('fType').value=r.ttype;document.getElementById('fWeek').value=r.wk;;}}
   else{document.getElementById('fTask').value='';document.getElementById('fProj').value='';document.getElementById('fType').value='Actual';}
   document.getElementById('taskErr').textContent='';
   document.getElementById('taskModal').classList.add('open');
@@ -425,8 +416,7 @@ function submitTask(){
   if(!task){err.textContent='Task name required.';return;}
   if(!proj){err.textContent='Project name required.';return;}
   if(!wkv){err.textContent='Week required.';return;}
-  const hrs={};DK.forEach(d=>{hrs[d]=parseFloat(document.getElementById('fh_'+d).value)||0;});
-  if(DK.reduce((s,d)=>s+hrs[d],0)===0){err.textContent='Enter hours for at least one day.';return;}
+  const hrs={}; DK.forEach(d=>{hrs[d]=0;}); // hours entered by employee on timesheet
   const reqs=getR();
   if(ED){const i=reqs.findIndex(r=>r.id===ED);const wkvDate2=new Date(wkv+'T00:00:00');const wkvDay2=wkvDate2.getDay();const wkvSF2=wkvDay2>=5?wkvDay2-5:wkvDay2+2;wkvDate2.setDate(wkvDate2.getDate()-wkvSF2);const normWk2=iso(wkvDate2);
     if(i>-1)reqs[i]={...reqs[i],task,proj,ttype,wk:normWk2,hrs,status:'pending',ua:new Date().toISOString()};showToast('Updated!');}
@@ -463,7 +453,7 @@ function adminView(v){
     let prH=pr.length===0?`<div class="empty">No pending requests.</div>`:'';
     pr.slice(0,8).forEach(r=>{const th=DK.reduce((s,d)=>s+(r.hrs[d]||0),0);prH+=`<div class="req-row"><div class="req-info"><div class="req-name">${r.empName}</div><div class="req-detail">${r.task} &middot; ${r.proj} &middot; ${r.ttype} &middot; ${th}h</div></div><div class="req-actions"><span class="badge pending">pending</span><button class="btn btn-success btn-sm" onclick="appR('${r.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${r.id}','req')">Reject</button></div></div>`;});
     let stH=st.length===0?`<div class="empty">No timesheets awaiting approval.</div>`:'';
-    st.slice(0,8).forEach(t=>{stH+=`<div class="req-row"><div class="req-info"><div class="req-name">${t.empName}</div><div class="req-detail">Period: ${t.wkLabel} &middot; Total: ${t.th}h &middot; Sent: ${new Date(t.sentAt).toLocaleDateString()}</div></div><div class="req-actions"><span class="badge sent">sent</span><button class="btn btn-success btn-sm" onclick="appT('${t.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${t.id}','ts')">Reject</button><button class="btn btn-outline btn-sm" onclick="dlOne('${t.emp}','${t.wk}')">&#8595; CSV</button></div></div>`;});
+    st.slice(0,8).forEach(t=>{stH+=`<div class="req-row"><div class="req-info"><div class="req-name">${t.empName}</div><div class="req-detail">Period: ${t.wkLabel} &middot; Total: ${t.th}h &middot; Sent: ${new Date(t.sentAt).toLocaleDateString()}</div></div><div class="req-actions"><span class="badge sent">sent</span><button class="btn btn-success btn-sm" onclick="appT('${t.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${t.id}','ts')">Reject</button><button class="btn btn-outline btn-sm" onclick="dlOne('${t.emp}','${t.wk}')">&#8595; PDF</button></div></div>`;});
     document.getElementById('mainArea').innerHTML=`<div class="panel-area">
       <div class="stats-row">
         <div class="stat-box"><div class="stat-label">Pending Requests</div><div class="stat-val amber">${pr.length}</div></div>
@@ -472,7 +462,7 @@ function adminView(v){
         <div class="stat-box"><div class="stat-label">Approved Timesheets</div><div class="stat-val green">${tl.filter(t=>t.status==='approved').length}</div></div>
       </div>
       <div class="card"><div class="card-head"><span class="card-title">Pending Task Requests</span><button class="btn btn-success btn-sm" onclick="appAll()">Approve All Pending</button></div><div>${prH}</div></div>
-      <div class="card"><div class="card-head"><span class="card-title">Timesheets Sent for Approval</span><button class="btn btn-primary btn-sm" onclick="dlAll()">&#8595; Download All CSV</button></div><div>${stH}</div></div>
+      <div class="card"><div class="card-head"><span class="card-title">Timesheets Sent for Approval</span><button class="btn btn-primary btn-sm" onclick="dlAll()">&#8595; Download All (PDF)</button></div><div>${stH}</div></div>
     </div>`;
   } else if(v==='rq'){
     const sorted=reqs.slice().sort((a,b)=>new Date(b.ca||0)-new Date(a.ca||0));
@@ -482,8 +472,8 @@ function adminView(v){
   } else if(v==='ts'){
     const sorted=tl.slice().sort((a,b)=>new Date(b.sentAt||0)-new Date(a.sentAt||0));
     let rows=sorted.length===0?`<div class="empty">No timesheets sent yet.</div>`:'';
-    sorted.forEach(t=>{rows+=`<div class="req-row"><div class="req-info"><div class="req-name">${t.empName}</div><div class="req-detail">Period: ${t.wkLabel} &middot; Total: ${t.th}h${t.sentAt?` &middot; Sent: ${new Date(t.sentAt).toLocaleDateString()}`:''}${t.approvedAt?` &middot; Approved: ${new Date(t.approvedAt).toLocaleDateString()}`:''}</div></div><div class="req-actions"><span class="badge ${t.status}">${t.status}</span>${t.status==='sent'?`<button class="btn btn-success btn-sm" onclick="appT('${t.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${t.id}','ts')">Reject</button>`:''}<button class="btn btn-outline btn-sm" onclick="dlOne('${t.emp}','${t.wk}')">&#8595; CSV</button></div></div>`;});
-    document.getElementById('mainArea').innerHTML=`<div class="panel-area"><div class="card"><div class="card-head"><span class="card-title">All Sent Timesheets</span><button class="btn btn-primary btn-sm" onclick="dlAll()">&#8595; Download All (CSV)</button></div><div>${rows}</div></div></div>`;
+    sorted.forEach(t=>{rows+=`<div class="req-row"><div class="req-info"><div class="req-name">${t.empName}</div><div class="req-detail">Period: ${t.wkLabel} &middot; Total: ${t.th}h${t.sentAt?` &middot; Sent: ${new Date(t.sentAt).toLocaleDateString()}`:''}${t.approvedAt?` &middot; Approved: ${new Date(t.approvedAt).toLocaleDateString()}`:''}</div></div><div class="req-actions"><span class="badge ${t.status}">${t.status}</span>${t.status==='sent'?`<button class="btn btn-success btn-sm" onclick="appT('${t.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${t.id}','ts')">Reject</button>`:''}<button class="btn btn-outline btn-sm" onclick="dlOne('${t.emp}','${t.wk}')">&#8595; PDF</button></div></div>`;});
+    document.getElementById('mainArea').innerHTML=`<div class="panel-area"><div class="card"><div class="card-head"><span class="card-title">All Sent Timesheets</span><button class="btn btn-primary btn-sm" onclick="dlAll()">&#8595; Download All (PDF)</button></div><div>${rows}</div></div></div>`;
   } else if(v==='em'){
     const el=Object.entries(USERS).filter(([,u])=>u.role==='employee');
     const clrs=['#e8f0fb','#e6f4ed','#fde8eb','#fff8e1','#f0f4fa','#fce8f0'];
@@ -503,31 +493,137 @@ function confirmReject(){
   else{const r=getR();const i=r.findIndex(x=>x.id===RJID);if(i>-1){r[i].status='rejected';r[i].rr=reason;}setR(r);}
   closeModal('rejectModal');showToast('Rejected.');adminView(CV);
 }
+function updateHrs(reqId, dayKey, val){
+  const reqs=getR();
+  const idx=reqs.findIndex(r=>r.id===reqId);
+  if(idx>-1){
+    reqs[idx].hrs[dayKey]=parseFloat(val)||0;
+    setR(reqs);
+    // Refresh totals row without full re-render
+    renderTS();
+  }
+}
 function dlOne(empUser,weekFri){
   const emp=Object.entries(USERS).find(([u])=>u===empUser);
   const en=emp?emp[1].name:empUser,ee=emp?emp[1].email:'';
-  const fri=new Date(weekFri);
-  const reqs=getR().filter(r=>r.emp===empUser&&r.status==='approved'&&r.wk===weekFri);
-  const dh=DK.map((_,i)=>{const d=new Date(fri);d.setDate(fri.getDate()+i);return '"'+DAYS[i]+' '+fs(d)+'"';}).join(',');
-  let csv='"Employee","Email","Task_Name","Project","Time_Type",'+dh+',"Total"\n';
-  const dt=DK.map(()=>0);
-  reqs.forEach(r=>{const row=[en,ee,r.task,r.proj,r.ttype,...DK.map((d,i)=>{const h=r.hrs[d]||0;dt[i]+=h;return h;}),DK.reduce((s,d)=>s+(r.hrs[d]||0),0)];csv+=row.map(v=>'"'+v+'"').join(',')+'\n';});
-  csv+='"","","","","Total work",'+dt.map(h=>'"'+h+'"').join(',')+',"'+dt.reduce((s,h)=>s+h,0)+'"\n';
-  dlCSV(csv,'timesheet_'+empUser+'_'+weekFri+'.csv');showToast('CSV downloaded!');
+  const fri=new Date(weekFri+'T12:00:00');
+  const reqs=getR().filter(r=>r.emp===empUser&&r.status==='approved'&&normalizeFriday(r.wk)===weekFri);
+  const dates=DK.map((_,i)=>{const d=new Date(fri);d.setDate(fri.getDate()+i);return d;});
+  const dayTotals=DK.map(()=>0);
+  const totH=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
+  const ts=getT().find(t=>t.emp===empUser&&normalizeFriday(t.wk)===weekFri);
+  const statusBadge=ts?ts.status:'draft';
+  const approvedBy=ts&&ts.approvedBy?ts.approvedBy:'';
+  const sentDate=ts&&ts.sentAt?new Date(ts.sentAt).toLocaleDateString():'';
+
+  // Build table rows HTML
+  let trs='';
+  reqs.forEach(r=>{
+    trs+=`<tr>${['',r.task,r.proj,r.ttype,...DK.map((d,i)=>{const h=r.hrs[d]||0;dayTotals[i]+=h;return h;})].map((v,ci)=>`<td style="padding:6px 10px;border:1px solid #d0d8e8;font-size:12px;${ci===0?'width:24px;':ci===1?'min-width:180px;':ci===3?'text-align:center;':ci>3?'text-align:center;font-family:monospace;':''}">${ci===0?'':''}${v}</td>`).join('')}</tr>`;
+  });
+  const totalCells=DK.map((d,i)=>`<td style="padding:6px 10px;border:1px solid #d0d8e8;text-align:center;font-family:monospace;font-weight:700;font-size:12px;">${dayTotals[i]||''}</td>`).join('');
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Timesheet - ${en}</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:24px;color:#1a2236;background:#fff;}
+  @media print{body{padding:0;}button{display:none!important;}}</style></head>
+  <body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #0f1f3d;">
+    <div><div style="font-size:9px;letter-spacing:.1em;color:#5a6a85;text-transform:uppercase;margin-bottom:4px;">TIMESHEET REPORT</div>
+    <div style="font-size:18px;font-weight:700;color:#0f1f3d;">Employee Timesheet System</div></div>
+    <div style="text-align:right;">
+      <div style="font-size:10px;color:#5a6a85;">Generated: ${new Date().toLocaleDateString()}</div>
+      <div style="margin-top:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;background:${statusBadge==='approved'?'#e6f4ed':statusBadge==='sent'?'#e8f0fb':'#f4f6f9'};color:${statusBadge==='approved'?'#1a7f4b':statusBadge==='sent'?'#1a56a0':'#5a6a85'};">${statusBadge.toUpperCase()}</div>
+    </div>
+  </div>
+  <table style="width:100%;margin-bottom:16px;font-size:12px;"><tr>
+    <td style="padding:4px 0;width:50%;"><span style="color:#5a6a85;">Employee:</span> <strong>${en}</strong></td>
+    <td style="padding:4px 0;"><span style="color:#5a6a85;">Email:</span> ${ee}</td>
+  </tr><tr>
+    <td style="padding:4px 0;"><span style="color:#5a6a85;">Period:</span> <strong>${dates[0].toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'})} 12:00 AM – ${dates[6].toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'})} 11:59 PM</strong></td>
+    <td style="padding:4px 0;"><span style="color:#5a6a85;">Total Hours:</span> <strong>${totH}h</strong></td>
+  </tr>${approvedBy?`<tr><td colspan="2" style="padding:4px 0;color:#1a7f4b;font-weight:600;">&#10003; Approved by: ${approvedBy} &nbsp;|&nbsp; Sent: ${sentDate}</td></tr>`:''}</table>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="background:#0f1f3d;color:#fff;">
+      <th style="padding:8px 10px;text-align:left;min-width:180px;font-size:11px;">TASK_NAME</th>
+      <th style="padding:8px 10px;text-align:left;font-size:11px;">PROJECT</th>
+      <th style="padding:8px 10px;text-align:center;font-size:11px;">TIME_TYPE</th>
+      ${dates.map((d,i)=>`<th style="padding:8px 6px;text-align:center;font-size:10px;min-width:46px;">${DAYS[i]}<br>${fs(d)}</th>`).join('')}
+    </tr></thead>
+    <tbody>${trs}
+    <tr style="background:#f8fafc;border-top:2px solid #0f1f3d;">
+      <td colspan="2" style="padding:6px 10px;border:1px solid #d0d8e8;text-align:right;font-weight:700;font-size:12px;color:#5a6a85;">Total work</td>
+      <td style="padding:6px 10px;border:1px solid #d0d8e8;"></td>
+      ${totalCells}
+    </tr></tbody>
+  </table>
+  <div style="margin-top:24px;padding-top:14px;border-top:1px solid #d0d8e8;font-size:10px;color:#5a6a85;display:flex;justify-content:space-between;">
+    <span>Employee Timesheet System</span><span>Printed: ${new Date().toLocaleString()}</span>
+  </div>
+  <div style="margin-top:20px;text-align:center;">
+    <button onclick="window.print()" style="background:#0f1f3d;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">🖨 Print / Save as PDF</button>
+  </div>
+  </body></html>`;
+  const win=window.open('','_blank');win.document.write(html);win.document.close();win.focus();
+  showToast('PDF preview opened!');
 }
+
 function dlAll(){
   const tl=getT();if(tl.length===0){showToast('No timesheets yet.');return;}
-  let csv='"Employee","Email","Period","Task_Name","Project","Time_Type","Fri","Sat","Sun","Mon","Tue","Wed","Thu","Total Hours","Status"\n';
-  tl.forEach(t=>{
+  // Build combined PDF for all timesheets
+  let allSections='';
+  tl.forEach((t,idx)=>{
     const emp=Object.entries(USERS).find(([u])=>u===t.emp);
     const ee=emp?emp[1].email:'';
-    const reqs=getR().filter(r=>r.emp===t.emp&&r.status==='approved'&&r.wk===t.wk);
-    if(reqs.length===0){csv+='"'+t.empName+'","'+ee+'","'+t.wkLabel+'","(no approved tasks)","","",0,0,0,0,0,0,0,0,"'+t.status+'"\n';}
-    else{reqs.forEach(r=>{const row=[t.empName,ee,t.wkLabel,r.task,r.proj,r.ttype,...DK.map(d=>r.hrs[d]||0),DK.reduce((s,d)=>s+(r.hrs[d]||0),0),t.status];csv+=row.map(v=>'"'+v+'"').join(',')+'\n';});}
+    const wfri=normalizeFriday(t.wk);
+    const fri=new Date(wfri+'T12:00:00');
+    const dates=DK.map((_,i)=>{const d=new Date(fri);d.setDate(fri.getDate()+i);return d;});
+    const reqs=getR().filter(r=>r.emp===t.emp&&r.status==='approved'&&normalizeFriday(r.wk)===wfri);
+    const dayTotals=DK.map(()=>0);
+    const totH=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
+    let trs='';
+    reqs.forEach(r=>{
+      const hCells=DK.map((d,i)=>{const h=r.hrs[d]||0;dayTotals[i]+=h;return `<td style="padding:5px 8px;border:1px solid #d0d8e8;text-align:center;font-family:monospace;font-size:11px;">${h||''}</td>`;}).join('');
+      trs+=`<tr><td style="padding:5px 8px;border:1px solid #d0d8e8;font-size:11px;font-weight:500;color:#1a56a0;">${r.task}</td><td style="padding:5px 8px;border:1px solid #d0d8e8;font-size:11px;color:#5a6a85;">${r.proj}</td><td style="padding:5px 8px;border:1px solid #d0d8e8;text-align:center;font-size:11px;">${r.ttype}</td>${hCells}</tr>`;
+    });
+    const totCells=DK.map((d,i)=>`<td style="padding:5px 8px;border:1px solid #d0d8e8;text-align:center;font-family:monospace;font-weight:700;font-size:11px;">${dayTotals[i]||''}</td>`).join('');
+    allSections+=`
+    <div style="page-break-inside:avoid;margin-bottom:32px;${idx>0?'page-break-before:auto':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #0f1f3d;">
+        <div><div style="font-size:14px;font-weight:700;color:#0f1f3d;">${t.empName}</div><div style="font-size:11px;color:#5a6a85;">${ee} &nbsp;|&nbsp; Period: ${dates[0].toLocaleDateString()} – ${dates[6].toLocaleDateString()} &nbsp;|&nbsp; Total: ${totH}h</div></div>
+        <div style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:${t.status==='approved'?'#e6f4ed':t.status==='sent'?'#e8f0fb':'#f4f6f9'};color:${t.status==='approved'?'#1a7f4b':t.status==='sent'?'#1a56a0':'#5a6a85'};">${t.status.toUpperCase()}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0f1f3d;color:#fff;">
+          <th style="padding:6px 8px;text-align:left;font-size:10px;min-width:160px;">TASK_NAME</th>
+          <th style="padding:6px 8px;text-align:left;font-size:10px;">PROJECT</th>
+          <th style="padding:6px 8px;text-align:center;font-size:10px;">TIME_TYPE</th>
+          ${dates.map((d,i)=>`<th style="padding:6px 5px;text-align:center;font-size:9px;min-width:40px;">${DAYS[i]}<br>${fs(d)}</th>`).join('')}
+        </tr></thead>
+        <tbody>${trs}
+        <tr style="background:#f8fafc;border-top:2px solid #0f1f3d;">
+          <td colspan="2" style="padding:5px 8px;border:1px solid #d0d8e8;text-align:right;font-weight:700;font-size:11px;color:#5a6a85;">Total work</td>
+          <td style="border:1px solid #d0d8e8;"></td>${totCells}
+        </tr></tbody>
+      </table>
+    </div>`;
   });
-  dlCSV(csv,'all_timesheets_'+new Date().toISOString().split('T')[0]+'.csv');showToast('All timesheets downloaded!');
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>All Timesheets</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:20px;color:#1a2236;}@media print{button{display:none!important;}}</style></head>
+  <body>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #0f1f3d;">
+    <div><div style="font-size:18px;font-weight:700;color:#0f1f3d;">Compiled Timesheet Report</div>
+    <div style="font-size:11px;color:#5a6a85;">Employee Timesheet System &nbsp;|&nbsp; All employees &nbsp;|&nbsp; ${tl.length} timesheet(s)</div></div>
+    <div style="font-size:11px;color:#5a6a85;">Generated: ${new Date().toLocaleString()}</div>
+  </div>
+  ${allSections}
+  <div style="text-align:center;margin-top:20px;">
+    <button onclick="window.print()" style="background:#0f1f3d;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">🖨 Print / Save as PDF</button>
+  </div>
+  </body></html>`;
+  const win=window.open('','_blank');win.document.write(html);win.document.close();win.focus();
+  showToast('PDF preview opened — use Print to save as PDF!');
 }
-function dlCSV(c,fn){const b=new Blob([c],{type:'text/csv;charset=utf-8;'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 let tt;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3000);}
