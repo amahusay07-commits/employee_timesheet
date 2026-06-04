@@ -224,6 +224,7 @@ select.form-ctrl{background:#fff;}
 <div class="toast" id="toast"></div>
 <script>
 
+
 const DAYS=['Fri','Sat','Sun','Mon','Tue','Wed','Thu'];
 const DK=['fri','sat','sun','mon','tue','wed','thu'];
 const USERS={
@@ -237,10 +238,8 @@ const USERS={
 };
 
 // ── GITHUB GIST DATABASE ─────────────────────────────────────────
-const GIST_ID    = '7d4f83044cdd3dbe2ac574a7f532a4c0';
-const GIST_TOKEN = [String.fromCharCode(103,104,112,95,99,122,75,89),String.fromCharCode(112,66,66,109,56,79,71,97),String.fromCharCode(84,102,87,83,71,99,112,53),String.fromCharCode(89,79,103,67,89,90,119,81),String.fromCharCode(104,100,52,68,49,103,99,71)].join("");
-const GIST_FILE  = 'timesheet_data.json';
-const GIST_API   = `https://api.github.com/gists/${GIST_ID}`;
+// ── GOOGLE APPS SCRIPT DATABASE ─────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJhj3IZ684V_Ec8EoHbrmwHMfnmUniMMEIIlQVuEoDLrGqMkj2xjd7ArtzxNy67_h6A/exec';
 
 let _db = { requests: [], timesheets: [] };
 function getR(){ return _db.requests   || []; }
@@ -250,57 +249,33 @@ function setT(v){ _db.timesheets = v; }
 
 async function loadFromGist(){
   showLoader('Loading data...');
-  // Use raw URL for reading — no CORS issues, no auth needed
-  const RAW_URL = `https://gist.githubusercontent.com/amahusay07-commits/${GIST_ID}/raw/${GIST_FILE}?t=${Date.now()}`;
   try{
-    const res = await fetch(RAW_URL, {cache:'no-store'});
+    const res = await fetch(GAS_URL+'?action=getAllData');
     if(!res.ok) throw new Error('HTTP '+res.status);
-    const text = await res.text();
-    const data = JSON.parse(text);
-    _db.requests   = Array.isArray(data.requests)   ? data.requests   : [];
-    _db.timesheets = Array.isArray(data.timesheets) ? data.timesheets : [];
-    console.log('Loaded: '+_db.requests.length+' requests, '+_db.timesheets.length+' timesheets');
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error||'Load failed');
+    _db.requests   = json.data.requests   || [];
+    _db.timesheets = json.data.timesheets || [];
+    console.log('Loaded: '+_db.requests.length+' req, '+_db.timesheets.length+' ts');
   }catch(e){
-    console.error('Gist load error:',e);
+    console.error('Load error:',e);
     _db={requests:[],timesheets:[]};
-    showBanner('⚠️ Could not load data: '+e.message+'. Working in local mode.','#c8102e');
+    showBanner('⚠️ Could not load data: '+e.message,'#c8102e');
   }finally{
     hideLoader();
   }
 }
 
-function showBanner(msg, color){
-  color = color||'#1a56a0';
-  let el = document.getElementById('sysBanner');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'sysBanner';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9997;padding:10px 16px;font-size:.8rem;font-weight:600;color:#fff;text-align:center;cursor:pointer;';
-    el.onclick = ()=>el.remove();
-    document.body.appendChild(el);
-  }
-  el.style.background = color;
-  el.textContent = msg + ' (click to dismiss)';
-}
-
 async function saveToGist(){
-  const token = GIST_TOKEN;
-  const body = JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(_db,null,2)}}});
-  const res = await fetch(GIST_API,{
-    method:'PATCH',
-    headers:{
-      'Authorization':'token '+token,
-      'Accept':'application/vnd.github.v3+json',
-      'Content-Type':'application/json'
-    },
-    body
+  const res = await fetch(GAS_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'syncAll',data:_db})
   });
-  if(!res.ok){
-    const txt = await res.text();
-    console.error('Gist save failed:',res.status,txt);
-    throw new Error('Save failed: '+res.status);
-  }
-  console.log('Saved to Gist OK');
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error||'Save failed');
+  console.log('Saved to Google Sheet ✅');
 }
 
 async function persistR(reqs){ setR(reqs); await saveToGist(); }
@@ -315,22 +290,16 @@ function showLoader(msg){
   document.getElementById('gloaderMsg').textContent=msg||'Loading...';
   el.style.display='flex';
 }
-function hideLoader(){ const el=document.getElementById('gloader');if(el)el.style.display='none'; }
+function hideLoader(){const el=document.getElementById('gloader');if(el)el.style.display='none';}
 
-
-
-// ── Loader UI ────────────────────────────────────────────────────
-function showLoader(msg) {
-  let el = document.getElementById('loader');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'loader';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(15,31,61,.55);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:inherit;';
-    el.innerHTML = '<div style="font-size:2rem;margin-bottom:12px;">⏳</div><div style="font-size:.9rem;font-weight:500;" id="loaderMsg">Loading...</div>';
-    document.body.appendChild(el);
-  }
-  document.getElementById('loaderMsg').textContent = msg || 'Loading...';
-  el.style.display = 'flex';
+function showBanner(msg,color){
+  color=color||'#1a56a0';
+  let el=document.getElementById('sysBanner');
+  if(!el){el=document.createElement('div');el.id='sysBanner';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9997;padding:10px 16px;font-size:.8rem;font-weight:600;color:#fff;text-align:center;cursor:pointer;';
+    el.onclick=()=>el.remove();document.body.appendChild(el);}
+  el.style.background=color;
+  el.textContent=msg+' (click to dismiss)';
 }
 function hideLoader() {
   const el = document.getElementById('loader');
@@ -966,29 +935,7 @@ document.getElementById('authUser').addEventListener('keydown',e=>{if(e.key==='E
 
 
 
-// ── DEBUG: test Gist connection manually ─────────────────────────
-async function testGist(){
-  showBanner('Testing Gist connection...','#1a56a0');
-  try{
-    const token = GIST_TOKEN;
-    console.log('Token length:',token.length,'First 6:',token.substring(0,6));
-    // Test read via raw URL
-    const rawUrl = `https://gist.githubusercontent.com/amahusay07-commits/${GIST_ID}/raw/${GIST_FILE}?t=${Date.now()}`;
-    const res = await fetch(rawUrl, {cache:'no-store'});
-    console.log('Raw Gist response status:',res.status);
-    if(res.ok){
-      const text = await res.text();
-      const data = JSON.parse(text);
-      showBanner('✅ Gist connected! requests: '+data.requests.length+', timesheets: '+data.timesheets.length,'#1a7f4b');
-    } else {
-      showBanner('❌ Gist read failed: HTTP '+res.status,'#c8102e');
-    }
-  }catch(e){
-    console.error('Test failed:',e);
-    showBanner('❌ Network error: '+e.message,'#c8102e');
-  }
-}
-// testGist() can be called from console for debugging
+
 
 </script>
 </body>
