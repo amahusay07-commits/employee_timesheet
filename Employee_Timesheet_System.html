@@ -225,8 +225,8 @@ select.form-ctrl{background:#fff;}
 <script>
 
 
-const DAYS=['Fri','Sat','Sun','Mon','Tue','Wed','Thu'];
-const DK=['fri','sat','sun','mon','tue','wed','thu'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DK=['sun','mon','tue','wed','thu','fri','sat'];
 const USERS={
   'admin':{pass:'admin2025',role:'admin',name:'Mahusay, Arey',email:'arey.mahusay@accenture.com'},
   'donna.lyn.t.leonen':{pass:'224906',role:'employee',name:'Leonen, Donna Lyn T.',email:'donna.lyn.t.leonen@accenture.com'},
@@ -238,30 +238,106 @@ const USERS={
 };
 
 // ── GITHUB GIST DATABASE ─────────────────────────────────────────
-// ── LOCAL STORAGE DATABASE ───────────────────────────────────────
-const G = (k,d) => { try{ return JSON.parse(localStorage.getItem(k))||d; }catch{ return d; } };
-const S = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+// ── GOOGLE APPS SCRIPT DATABASE ─────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJhj3IZ684V_Ec8EoHbrmwHMfnmUniMMEIIlQVuEoDLrGqMkj2xjd7ArtzxNy67_h6A/exec';
 
-function getR(){ return G('ts_r',[]); }
-function getT(){ return G('ts_t',[]); }
-function setR(v){ S('ts_r',v); }
-function setT(v){ S('ts_t',v); }
+// In-memory cache
+let _db = { requests: [], timesheets: [] };
+function getR(){ return _db.requests   || []; }
+function getT(){ return _db.timesheets || []; }
+function setR(v){ _db.requests   = v; }
+function setT(v){ _db.timesheets = v; }
 
-function loadFromGist(){ return Promise.resolve(); }
-async function saveToGist(){}
-async function persistR(reqs){ setR(reqs); }
-async function persistT(tls){  setT(tls);  }
+// ── READ via JSONP (no CORS) ──────────────────────────────────────
+function loadFromGist(){
+  return new Promise((resolve)=>{
+    showLoader('Loading data...');
+    const cb = '__load_'+Date.now();
+    const timer = setTimeout(()=>{
+      cleanup(); hideLoader();
+      console.warn('Load timed out');
+      resolve();
+    }, 15000);
 
-function showLoader(){}
-function hideLoader(){}
+    window[cb] = function(resp){
+      cleanup(); hideLoader();
+      if(resp && resp.ok && resp.data){
+        _db.requests   = resp.data.requests   || [];
+        _db.timesheets = resp.data.timesheets || [];
+        console.log('Loaded: '+_db.requests.length+' req, '+_db.timesheets.length+' ts');
+      }
+      resolve();
+    };
+
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cb];
+      const s = document.getElementById('_ls');
+      if(s) s.remove();
+    }
+
+    const s = document.createElement('script');
+    s.id  = '_ls';
+    s.src = GAS_URL+'?action=getAllData&cb='+cb;
+    s.onerror = ()=>{ cleanup(); hideLoader(); resolve(); };
+    document.head.appendChild(s);
+  });
+}
+
+// ── WRITE via JSONP (no CORS) ─────────────────────────────────────
+function saveToGist(){
+  return new Promise((resolve, reject)=>{
+    const cb   = '__save_'+Date.now();
+    const data = encodeURIComponent(JSON.stringify(_db));
+    const timer = setTimeout(()=>{
+      cleanup();
+      reject(new Error('Save timed out'));
+    }, 20000);
+
+    window[cb] = function(resp){
+      cleanup();
+      if(resp && resp.ok) resolve();
+      else reject(new Error(resp && resp.error ? resp.error : 'Save failed'));
+    };
+
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cb];
+      const s = document.getElementById('_ss');
+      if(s) s.remove();
+    }
+
+    const s = document.createElement('script');
+    s.id  = '_ss';
+    s.src = GAS_URL+'?action=syncAll&cb='+cb+'&data='+data;
+    s.onerror = ()=>{ cleanup(); reject(new Error('Save script failed')); };
+    document.head.appendChild(s);
+  });
+}
+
+async function persistR(reqs){ setR(reqs); await saveToGist(); }
+async function persistT(tls){  setT(tls);  await saveToGist(); }
+
+// ── LOADER ────────────────────────────────────────────────────────
+function showLoader(msg){
+  let el=document.getElementById('gloader');
+  if(!el){
+    el=document.createElement('div');el.id='gloader';
+    el.style.cssText='position:fixed;inset:0;background:rgba(15,31,61,.6);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:inherit;backdrop-filter:blur(2px);';
+    el.innerHTML='<div style="font-size:2.2rem;margin-bottom:12px;animation:spin 1s linear infinite;">⏳</div><div id="gloaderMsg" style="font-size:.88rem;font-weight:500;"></div>';
+    document.body.appendChild(el);
+  }
+  document.getElementById('gloaderMsg').textContent=msg||'Loading...';
+  el.style.display='flex';
+}
+function hideLoader(){const el=document.getElementById('gloader');if(el)el.style.display='none';}
 function showBanner(msg,color){
   color=color||'#1a56a0';
   let el=document.getElementById('sysBanner');
   if(!el){
     el=document.createElement('div');el.id='sysBanner';
     el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9997;padding:10px 16px;font-size:.8rem;font-weight:600;color:#fff;text-align:center;cursor:pointer;';
-    el.onclick=()=>el.remove();
-    document.body.appendChild(el);
+    el.onclick=()=>el.remove();document.body.appendChild(el);
   }
   el.style.background=color;
   el.textContent=msg+' (click to dismiss)';
@@ -273,12 +349,13 @@ function hideLoader() {
 
 let CU=null,WO=0,RJID=null,RJTYPE='req',ED=null,CV='ts';
 function getFri(o){
+  // Week starts on SUNDAY
   const now=new Date();
-  const dy=now.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-  // Days since last Friday
-  const sinceF = dy>=5 ? dy-5 : dy+2;
+  const dy=now.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  // Days since last Sunday
+  const sinceSun = dy; // dy=0 means today is Sunday
   const d=new Date(now);
-  d.setDate(now.getDate()-sinceF+o*7);
+  d.setDate(now.getDate()-sinceSun+o*7);
   d.setHours(0,0,0,0);
   return d;
 }
@@ -312,11 +389,11 @@ function doLogout(){
 
 // ── DATA MIGRATION: normalize all wk keys to local Friday ───────────────────
 function normalizeFriday(dateStr){
+  // Normalize any date to the Sunday of its week
   if(!dateStr) return dateStr;
-  const d = new Date(dateStr+'T12:00:00'); // use noon to avoid DST issues
-  const dy = d.getDay();
-  const sinceF = dy>=5 ? dy-5 : dy+2;
-  d.setDate(d.getDate()-sinceF);
+  const d = new Date(dateStr+'T12:00:00');
+  const dy = d.getDay(); // 0=Sun
+  d.setDate(d.getDate()-dy); // go back to Sunday
   return iso(d);
 }
 function migrateData(){
@@ -399,7 +476,7 @@ function renderTS(){
       const isLocked=!!(ts && ts.status==='approved' && ts.sentAt && ts.sentAt!=='');
       const cells=DK.map((d,i)=>{
         const h=r.hrs[d]||0;
-        const wk2=(i===1||i===2);
+        const wk2=(i===6);
         const cell = isLocked
           ? `<td class="hrs${wk2?' wknd':''}">${h||''}</td>`
           : `<td class="hrs${wk2?' wknd':''}"><input
@@ -416,7 +493,7 @@ function renderTS(){
       }).join('');
       rows+=`<tr><td style="width:26px;text-align:center;"><input type="checkbox"></td><td class="task-name">${r.task}</td><td class="project">${r.proj}</td><td class="ttype">${r.ttype}</td>${cells}</tr>`;
     });
-    const tc=DK.map((d,i)=>{const wk2=(i===1||i===2);return `<td class="hrs${wk2?' wknd':''}">${dt[d]||''}</td>`;}).join('');
+    const tc=DK.map((d,i)=>{const wk2=(i===6);return `<td class="hrs${wk2?' wknd':''}">${dt[d]||''}</td>`;}).join('');
     rows+=`<tr class="total-row"><td></td><td></td><td style="text-align:right;color:var(--muted);padding-right:8px;">Total work</td><td></td>${tc}</tr>`;
   }
   const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]}<br><span style="font-size:.58rem;font-weight:400;">${fs(d)}</span></th>`).join('');
@@ -488,7 +565,7 @@ function submitTask(){
   if(!task){err.textContent='Task name required.';return;}
   if(!proj){err.textContent='Project name required.';return;}
   if(!wkv){err.textContent='Week required.';return;}
-  const hrs={}; DK.forEach(d=>{hrs[d]=0;}); // hours entered by employee on timesheet
+  const hrs={sun:0,mon:0,tue:0,wed:0,thu:0,fri:0,sat:0}; // hours entered by employee on timesheet
   const reqs=getR();
   if(ED){const i=reqs.findIndex(r=>r.id===ED);const wkvDate2=new Date(wkv+'T00:00:00');const wkvDay2=wkvDate2.getDay();const wkvSF2=wkvDay2>=5?wkvDay2-5:wkvDay2+2;wkvDate2.setDate(wkvDate2.getDate()-wkvSF2);const normWk2=iso(wkvDate2);
     if(i>-1)reqs[i]={...reqs[i],task,proj,ttype,wk:normWk2,hrs,status:'pending',ua:new Date().toISOString()};showToast('Updated!');}
@@ -499,11 +576,11 @@ function submitTask(){
   wkvDate.setDate(wkvDate.getDate()-wkvSinceF);
   const normWk = iso(wkvDate);
   reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:normWk,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
-  showLoader('Saving request...');
+  showLoader('Saving...');
   persistR(reqs).then(()=>{
-    hideLoader();showToast(ED?'Request updated!':'Request submitted!');
+    hideLoader();showToast(ED?'Updated!':'Submitted!');
     closeModal('taskModal');if(CV==='ts')renderTS();else renderMyReqs();
-  }).catch(e=>{hideLoader();showToast('Error: '+e.message);});
+  }).catch(e=>{hideLoader();showToast('Error: '+e.message);closeModal('taskModal');if(CV==='ts')renderTS();else renderMyReqs();});
 }
 function saveTS(){showToast('Saved as draft.');}
 function openSendModal(){
@@ -984,7 +1061,7 @@ function adminSaveTask(){
     empName: empData ? empData.name : empUser,
     task, proj, ttype,
     wk: normWk,
-    hrs: {fri:0,sat:0,sun:0,mon:0,tue:0,wed:0,thu:0},
+    hrs: {sun:0,mon:0,tue:0,wed:0,thu:0,fri:0,sat:0},
     status: 'approved',
     approvedAt: new Date().toISOString(),
     approvedBy: CU.name,
@@ -1081,7 +1158,7 @@ function saveAddRow(unique){
     proj: src.proj,
     ttype: src.ttype,
     wk: normalizeFriday(normWk),
-    hrs: {fri:0,sat:0,sun:0,mon:0,tue:0,wed:0,thu:0},
+    hrs: {sun:0,mon:0,tue:0,wed:0,thu:0,fri:0,sat:0},
     status: 'approved',
     approvedAt: new Date().toISOString(),
     approvedBy: 'copied from existing task',
