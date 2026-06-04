@@ -527,8 +527,11 @@ function migrateData(){
 }
 
 function initApp(){
-  migrateData();
-  document.getElementById('hdrUser').textContent='Welcome, '+CU.name.split(',')[1].trim()+'  |  '+CU.email;
+  try {
+    migrateData();
+  } catch(e){ console.warn('migrate error (non-fatal):', e); }
+  try {
+    document.getElementById('hdrUser').textContent='Welcome, '+CU.name.split(',')[1].trim()+'  |  '+CU.email;
   if(CU.role==='admin'){
     document.getElementById('hdrTitle').textContent='Timesheet Manager — Admin';
     document.getElementById('ribbon').style.display='none';
@@ -548,6 +551,7 @@ function initApp(){
     </div>`;
     renderTS();
   }
+  } catch(e){ console.error('initApp error:',e); showBanner('App error: '+e.message,'#c8102e'); }
 }
 function sv(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');adminView(v);}
 function sv2(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');if(v==='ts')renderTS();else renderMyReqs();}
@@ -1112,8 +1116,7 @@ async function testGist(){
     showBanner('❌ Network error: '+e.message,'#c8102e');
   }
 }
-// Run test automatically on load
-window.addEventListener('load',()=>setTimeout(testGist,2000));
+// testGist() can be called from console for debugging
 
 </script>
 </body>
