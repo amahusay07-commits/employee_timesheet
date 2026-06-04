@@ -346,7 +346,24 @@ function renderTS(){
     rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Click <strong>Add Row</strong> in the ribbon to submit a task request.</td></tr>`;
   } else {
     reqs.forEach(r=>{
-      const cells=DK.map((d,i)=>{const h=r.hrs[d]||0;const wk2=(i===1||i===2);const isLocked=!!(ts&&(ts.status==='sent'||ts.status==='approved'));return `<td class="hrs${wk2?' wknd':''}">${isLocked?(h||''):`<input type="number" min="0" max="24" step="0.5" value="${h||''}" placeholder="" onchange="updateHrs('${r.id}','${DK[i]}',this.value)" style="width:44px;padding:3px 4px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.78rem;outline:none;background:#fff;" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">`}</td>`;}).join('');
+      const isLocked=!!(ts&&(ts.status==='sent'||ts.status==='approved'));
+      const cells=DK.map((d,i)=>{
+        const h=r.hrs[d]||0;
+        const wk2=(i===1||i===2);
+        const cell = isLocked
+          ? `<td class="hrs${wk2?' wknd':''}">${h||''}</td>`
+          : `<td class="hrs${wk2?' wknd':''}"><input
+              type="number" min="0" max="24" step="0.5"
+              value="${h||''}"
+              data-id="${r.id}"
+              data-day="${DK[i]}"
+              oninput="updateHrs(this)"
+              style="width:48px;padding:4px 3px;border:1.5px solid #d0d8e8;border-radius:4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.8rem;outline:none;background:#fff;"
+              onfocus="this.style.borderColor='#1a56a0'"
+              onblur="this.style.borderColor='#d0d8e8'"
+            ></td>`;
+        return cell;
+      }).join('');
       rows+=`<tr><td style="width:26px;text-align:center;"><input type="checkbox"></td><td class="task-name">${r.task}</td><td class="project">${r.proj}</td><td class="ttype">${r.ttype}</td>${cells}</tr>`;
     });
     const tc=DK.map((d,i)=>{const wk2=(i===1||i===2);return `<td class="hrs${wk2?' wknd':''}">${dt[d]||''}</td>`;}).join('');
@@ -493,15 +510,35 @@ function confirmReject(){
   else{const r=getR();const i=r.findIndex(x=>x.id===RJID);if(i>-1){r[i].status='rejected';r[i].rr=reason;}setR(r);}
   closeModal('rejectModal');showToast('Rejected.');adminView(CV);
 }
-function updateHrs(reqId, dayKey, val){
-  const reqs=getR();
-  const idx=reqs.findIndex(r=>r.id===reqId);
+function updateHrs(inputEl){
+  const reqId  = inputEl.getAttribute('data-id');
+  const dayKey = inputEl.getAttribute('data-day');
+  const val    = inputEl.value;
+  const reqs = getR();
+  const idx  = reqs.findIndex(r=>r.id===reqId);
   if(idx>-1){
-    reqs[idx].hrs[dayKey]=parseFloat(val)||0;
+    reqs[idx].hrs[dayKey] = parseFloat(val)||0;
     setR(reqs);
-    // Refresh totals row without full re-render
-    renderTS();
+    // Update only the totals row without full re-render
+    refreshTotals();
   }
+}
+function refreshTotals(){
+  // Recalculate totals from current input values on screen
+  const w=wk(WO);
+  const reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&normalizeFriday(r.wk)===w);
+  const dt={};DK.forEach(d=>dt[d]=0);
+  reqs.forEach(r=>DK.forEach(d=>{dt[d]+=(r.hrs[d]||0);}));
+  // Update total row cells
+  const totalRow=document.querySelector('table.ts tr.total-row');
+  if(totalRow){
+    const tds=totalRow.querySelectorAll('td.hrs');
+    DK.forEach((d,i)=>{if(tds[i])tds[i].textContent=dt[d]||'';});
+  }
+  // Update stat
+  const totH=DK.reduce((s,d)=>s+dt[d],0);
+  const statEl=document.getElementById('statTotH');
+  if(statEl)statEl.textContent=totH+'h';
 }
 function dlOne(empUser,weekFri){
   const emp=Object.entries(USERS).find(([u])=>u===empUser);
