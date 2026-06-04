@@ -250,41 +250,20 @@ function setT(v){ _db.timesheets = v; }
 
 async function loadFromGist(){
   showLoader('Loading data...');
+  // Use raw URL for reading — no CORS issues, no auth needed
+  const RAW_URL = `https://gist.githubusercontent.com/amahusay07-commits/${GIST_ID}/raw/${GIST_FILE}?t=${Date.now()}`;
   try{
-    const token = GIST_TOKEN;
-    const res = await fetch(GIST_API+'?t='+Date.now(),{
-      headers:{
-        'Authorization':'token '+token,
-        'Accept':'application/vnd.github.v3+json',
-        'Cache-Control':'no-cache'
-      }
-    });
-    if(!res.ok){
-      const txt = await res.text();
-      console.error('Gist fetch failed:',res.status,txt);
-      showToast('Data load failed ('+res.status+'). Using local session.');
-      _db={requests:[],timesheets:[]};
-      hideLoader();
-      return;
-    }
-    const json = await res.json();
-    if(!json.files || !json.files[GIST_FILE]){
-      console.error('Gist file not found. Files:',Object.keys(json.files||{}));
-      _db={requests:[],timesheets:[]};
-      hideLoader();
-      return;
-    }
-    const raw  = json.files[GIST_FILE].content;
-    const data = JSON.parse(raw);
+    const res = await fetch(RAW_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text = await res.text();
+    const data = JSON.parse(text);
     _db.requests   = Array.isArray(data.requests)   ? data.requests   : [];
     _db.timesheets = Array.isArray(data.timesheets) ? data.timesheets : [];
-    console.log('Loaded from Gist: '+_db.requests.length+' requests, '+_db.timesheets.length+' timesheets');
+    console.log('Loaded: '+_db.requests.length+' requests, '+_db.timesheets.length+' timesheets');
   }catch(e){
-    console.error('Gist error:',e);
-    // Show visible banner instead of just a toast
+    console.error('Gist load error:',e);
     _db={requests:[],timesheets:[]};
-    hideLoader();
-    showBanner('⚠️ Could not connect to database. Error: '+e.message+'. You are in local mode — data will not be shared.','#c8102e');
+    showBanner('⚠️ Could not load data: '+e.message+'. Working in local mode.','#c8102e');
   }finally{
     hideLoader();
   }
@@ -993,20 +972,16 @@ async function testGist(){
   try{
     const token = GIST_TOKEN;
     console.log('Token length:',token.length,'First 6:',token.substring(0,6));
-    const res = await fetch(GIST_API+'?t='+Date.now(),{
-      headers:{
-        'Authorization':'token '+token,
-        'Accept':'application/vnd.github.v3+json'
-      }
-    });
-    console.log('Gist response status:',res.status);
-    const json = await res.json();
-    console.log('Gist response keys:',Object.keys(json));
-    if(json.files){
-      console.log('Files:',Object.keys(json.files));
-      showBanner('✅ Gist connected! Files: '+Object.keys(json.files).join(', '),'#1a7f4b');
-    } else if(json.message){
-      showBanner('❌ Gist error: '+json.message,'#c8102e');
+    // Test read via raw URL
+    const rawUrl = `https://gist.githubusercontent.com/amahusay07-commits/${GIST_ID}/raw/${GIST_FILE}?t=${Date.now()}`;
+    const res = await fetch(rawUrl, {cache:'no-store'});
+    console.log('Raw Gist response status:',res.status);
+    if(res.ok){
+      const text = await res.text();
+      const data = JSON.parse(text);
+      showBanner('✅ Gist connected! requests: '+data.requests.length+', timesheets: '+data.timesheets.length,'#1a7f4b');
+    } else {
+      showBanner('❌ Gist read failed: HTTP '+res.status,'#c8102e');
     }
   }catch(e){
     console.error('Test failed:',e);
