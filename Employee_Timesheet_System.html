@@ -249,31 +249,43 @@ function setT(v){ _db.timesheets = v; }
 
 async function loadFromGist(){
   showLoader('Loading data...');
+  // Set a timeout so the loader never gets permanently stuck
+  const timeout = new Promise((_,reject)=>setTimeout(()=>reject(new Error('Request timed out after 10s')),10000));
   try{
-    const res = await fetch(GAS_URL+'?action=getAllData');
+    const fetchPromise = fetch(GAS_URL+'?action=getAllData', {
+      method:'GET',
+      redirect:'follow'
+    });
+    const res = await Promise.race([fetchPromise, timeout]);
     if(!res.ok) throw new Error('HTTP '+res.status);
-    const json = await res.json();
+    const text = await res.text();
+    console.log('Raw response:', text.substring(0,100));
+    const json = JSON.parse(text);
     if(!json.ok) throw new Error(json.error||'Load failed');
-    _db.requests   = json.data.requests   || [];
-    _db.timesheets = json.data.timesheets || [];
+    _db.requests   = Array.isArray(json.data.requests)   ? json.data.requests   : [];
+    _db.timesheets = Array.isArray(json.data.timesheets) ? json.data.timesheets : [];
     console.log('Loaded: '+_db.requests.length+' req, '+_db.timesheets.length+' ts');
   }catch(e){
     console.error('Load error:',e);
     _db={requests:[],timesheets:[]};
-    showBanner('⚠️ Could not load data: '+e.message,'#c8102e');
+    showBanner('⚠️ '+e.message+' — working in local mode.','#c8102e');
   }finally{
     hideLoader();
   }
 }
 
 async function saveToGist(){
-  const res = await fetch(GAS_URL,{
+  const timeout = new Promise((_,reject)=>setTimeout(()=>reject(new Error('Save timed out')),15000));
+  const fetchPromise = fetch(GAS_URL,{
     method:'POST',
     headers:{'Content-Type':'text/plain'},
+    redirect:'follow',
     body:JSON.stringify({action:'syncAll',data:_db})
   });
+  const res = await Promise.race([fetchPromise, timeout]);
   if(!res.ok) throw new Error('HTTP '+res.status);
-  const json = await res.json();
+  const text = await res.text();
+  const json = JSON.parse(text);
   if(!json.ok) throw new Error(json.error||'Save failed');
   console.log('Saved to Google Sheet ✅');
 }
