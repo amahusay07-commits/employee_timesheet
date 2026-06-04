@@ -6,245 +6,217 @@
 <title>Employee Timesheet System</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --navy:#0f1f3d;--blue:#1a56a0;--blue-lt:#e8f0fb;
-  --green:#1a7f4b;--green-bg:#e6f4ed;
-  --red:#c8102e;--red-bg:#fde8eb;
-  --amber:#b07800;--amber-bg:#fff8e1;
-  --gray:#f4f6f9;--border:#d0d8e8;
-  --muted:#5a6a85;--text:#1a2236;--white:#fff;
-  --radius:8px;--shadow:0 2px 12px rgba(15,31,61,.08);
-  font-family:'IBM Plex Sans',sans-serif;
-}
+:root{--navy:#0f1f3d;--blue:#1a56a0;--blue-lt:#e8f0fb;--green:#1a7f4b;--green-bg:#e6f4ed;--red:#c8102e;--red-bg:#fde8eb;--amber:#8a6000;--amber-bg:#fff8e1;--gray:#f4f6f9;--border:#d0d8e8;--muted:#5a6a85;--text:#1a2236;--white:#fff;--radius:6px;font-family:'IBM Plex Sans',sans-serif;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{background:#eef1f7;color:var(--text);min-height:100vh;font-size:14px;}
-
-/* AUTH */
-#authScreen{position:fixed;inset:0;background:#0a1628;display:flex;align-items:center;justify-content:center;z-index:999;}
-.auth-box{background:#fff;border-radius:14px;padding:40px 36px;width:100%;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
-.auth-logo{width:52px;height:52px;background:var(--navy);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.4rem;}
-.auth-box h2{font-size:1.1rem;font-weight:600;color:var(--navy);margin-bottom:4px;}
-.auth-box p{font-size:.8rem;color:var(--muted);margin-bottom:24px;}
-.field-label{font-size:.72rem;font-weight:600;color:var(--navy);text-align:left;display:block;margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase;}
-.field-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;font-family:inherit;outline:none;margin-bottom:12px;transition:border-color .2s;}
-.field-input:focus{border-color:var(--blue);}
-.auth-btn{width:100%;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:.9rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;}
+body{background:#eef1f7;color:var(--text);min-height:100vh;font-size:13px;}
+#authScreen{position:fixed;inset:0;background:#162848;display:flex;align-items:center;justify-content:center;z-index:999;}
+.auth-box{background:#fff;border-radius:12px;padding:36px 32px;width:100%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.auth-logo{width:50px;height:50px;background:var(--navy);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.5rem;}
+.auth-box h2{font-size:1rem;font-weight:600;color:var(--navy);margin-bottom:4px;}
+.auth-sub{font-size:.75rem;color:var(--muted);margin-bottom:20px;}
+.f-label{font-size:.68rem;font-weight:600;color:var(--navy);text-align:left;display:block;margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase;}
+.f-input{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:.85rem;font-family:inherit;outline:none;margin-bottom:10px;transition:border-color .2s;}
+.f-input:focus{border-color:var(--blue);}
+.auth-btn{width:100%;padding:10px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit;}
 .auth-btn:hover{background:var(--blue);}
-.auth-error{color:var(--red);font-size:.78rem;min-height:18px;margin-bottom:8px;text-align:left;font-weight:500;}
-
-/* LAYOUT */
-#appScreen{display:none;}
-.app-header{background:var(--navy);color:#fff;padding:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.25);}
-.header-inner{max-width:1200px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
-.header-title{font-size:1rem;font-weight:600;letter-spacing:.01em;}
-.header-sub{font-size:.73rem;color:#a0b4d0;margin-top:1px;font-family:'IBM Plex Mono',monospace;}
-.header-right{display:flex;align-items:center;gap:10px;}
-.nav-tabs{background:#162848;display:flex;max-width:1200px;margin:0 auto;padding:0 24px;border-top:1px solid rgba(255,255,255,.07);}
-.nav-tab{background:none;border:none;color:#7a9bc4;font-size:.8rem;font-weight:500;padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;transition:color .15s,border-color .15s;}
-.nav-tab:hover{color:#fff;}
-.nav-tab.active{color:#f0a500;border-bottom-color:#f0a500;}
-.main{max-width:1200px;margin:0 auto;padding:24px;}
-.panel{display:none;}
-.panel.active{display:block;}
-
-/* CARDS */
-.card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px;}
-.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.card-title{font-size:.9rem;font-weight:600;color:var(--navy);}
-.card-body{padding:18px;}
-
-/* STATS ROW */
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px;}
-.stat-box{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:14px 16px;}
-.stat-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
-.stat-val{font-size:1.5rem;font-weight:600;color:var(--navy);font-family:'IBM Plex Mono',monospace;line-height:1;}
-.stat-val.green{color:var(--green);}
-.stat-val.amber{color:var(--amber);}
-.stat-val.red{color:var(--red);}
-
-/* TIMESHEET TABLE */
-.ts-wrap{overflow-x:auto;}
-table.ts{width:100%;border-collapse:collapse;min-width:900px;font-size:.82rem;}
-table.ts th{background:#f8fafc;padding:9px 10px;text-align:center;font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+.auth-err{color:var(--red);font-size:.75rem;min-height:16px;margin-bottom:6px;text-align:left;font-weight:500;}
+#appScreen{display:none;height:100vh;flex-direction:column;}
+#appScreen.show{display:flex;}
+.ribbon{background:#fff;border-bottom:1px solid var(--border);padding:0;flex-shrink:0;}
+.ribbon-inner{display:flex;align-items:stretch;padding:0 12px;}
+.ribbon-group{display:flex;flex-direction:column;border-right:1px solid var(--border);padding:5px 10px 2px;}
+.ribbon-group:last-child{border-right:none;}
+.ribbon-group-label{font-size:.58rem;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
+.ribbon-btns{display:flex;gap:3px;align-items:center;}
+.rb{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 9px;border-radius:4px;cursor:pointer;border:none;background:none;font-family:inherit;font-size:.68rem;font-weight:500;color:var(--navy);transition:background .15s;min-width:40px;}
+.rb:hover{background:#f0f4fa;}
+.rb:disabled{opacity:.4;cursor:not-allowed;}
+.rb .ri{font-size:1.25rem;line-height:1;}
+.body-layout{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:160px;background:#fff;border-right:1px solid var(--border);flex-shrink:0;overflow-y:auto;}
+.sidebar-section{padding:12px 0 4px;}
+.sid-label{font-size:.6rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0 12px 5px;}
+.sid-item{display:block;padding:7px 12px;font-size:.78rem;color:var(--text);cursor:pointer;border-left:3px solid transparent;transition:all .15s;}
+.sid-item:hover{background:#f8fafc;color:var(--blue);}
+.sid-item.active{background:#e8f0fb;color:var(--blue);border-left-color:var(--blue);font-weight:500;}
+.main-area{flex:1;overflow:auto;}
+.approval-bar{background:#f0f7ff;border-bottom:1px solid #c0d8f0;padding:8px 18px;font-size:.78rem;color:var(--navy);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.week-nav-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px;}
+.wk-label{font-size:.78rem;font-weight:600;color:var(--navy);font-family:'IBM Plex Mono',monospace;}
+.wn-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:.8rem;color:var(--navy);display:flex;align-items:center;justify-content:center;}
+.wn-btn:hover{background:var(--gray);}
+.ts-container{padding:14px 16px;}
+.ts-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:#fff;}
+table.ts{width:100%;border-collapse:collapse;min-width:780px;font-size:.77rem;}
+table.ts th{background:#f0f4fa;padding:7px 8px;text-align:center;font-weight:600;color:var(--muted);font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;}
+table.ts th:last-child{border-right:none;}
 table.ts th.left{text-align:left;}
-table.ts td{padding:8px 10px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}
-table.ts td.task-name{color:var(--blue);font-weight:500;min-width:220px;}
+table.ts td{padding:6px 8px;border-bottom:1px solid #f0f4f8;border-right:1px solid #f0f4f8;vertical-align:middle;}
+table.ts td:last-child{border-right:none;}
+table.ts td.task-name{color:var(--blue);font-weight:500;min-width:190px;}
 table.ts td.project{color:var(--muted);white-space:nowrap;}
-table.ts td.hours{text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:500;}
-table.ts td.hours input{width:44px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.82rem;outline:none;}
-table.ts td.hours input:focus{border-color:var(--blue);}
-table.ts td.hours.filled{color:var(--navy);}
-table.ts td.hours.empty{color:#ccc;}
+table.ts td.ttype{text-align:center;white-space:nowrap;}
+table.ts td.hrs{text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:500;min-width:58px;}
+table.ts td.wknd{background:#f8f9fa;}
 table.ts tr.total-row td{background:#f8fafc;font-weight:600;border-top:2px solid var(--border);border-bottom:none;}
 table.ts tr:hover:not(.total-row) td{background:#fafcfe;}
-
-/* STATUS BADGES */
-.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:600;letter-spacing:.03em;}
-.badge.pending{background:#fff8e1;color:var(--amber);}
+table.ts input[type=checkbox]{width:13px;height:13px;cursor:pointer;}
+.panel-area{padding:14px 16px;}
+.card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px;}
+.card-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.card-title{font-size:.85rem;font-weight:600;color:var(--navy);}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:12px;}
+.stat-box{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:11px 13px;}
+.stat-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.stat-val{font-size:1.35rem;font-weight:600;color:var(--navy);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-val.green{color:var(--green);}
+.stat-val.amber{color:var(--amber);}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.67rem;font-weight:600;}
+.badge.pending{background:var(--amber-bg);color:var(--amber);}
 .badge.approved{background:var(--green-bg);color:var(--green);}
 .badge.rejected{background:var(--red-bg);color:var(--red);}
-.badge.submitted{background:var(--blue-lt);color:var(--blue);}
+.badge.sent{background:var(--blue-lt);color:var(--blue);}
 .badge.draft{background:#f4f6f9;color:var(--muted);}
-
-/* BUTTONS */
-.btn{font-family:inherit;font-size:.8rem;font-weight:600;padding:7px 16px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
-.btn-primary{background:var(--navy);color:#fff;}
+.btn{font-family:inherit;font-size:.73rem;font-weight:600;padding:5px 12px;border-radius:var(--radius);border:1.5px solid transparent;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy);}
 .btn-primary:hover{background:var(--blue);}
-.btn-success{background:var(--green);color:#fff;}
+.btn-success{background:var(--green);color:#fff;border-color:var(--green);}
 .btn-success:hover{background:#156039;}
-.btn-danger{background:var(--red);color:#fff;}
-.btn-danger:hover{background:#a50d25;}
-.btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--border);}
-.btn-outline:hover{border-color:var(--navy);background:var(--gray);}
-.btn-amber{background:#fff8e1;color:var(--amber);border:1.5px solid #f0c040;}
-.btn-amber:hover{background:#f0a500;color:#fff;border-color:#f0a500;}
-.btn-sm{padding:5px 11px;font-size:.75rem;}
-.btn:disabled{opacity:.45;cursor:not-allowed;}
-
-/* FORMS */
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.form-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
-.form-group{display:flex;flex-direction:column;gap:4px;}
-.form-label{font-size:.72rem;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;}
-.form-control{padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem;outline:none;transition:border-color .2s;width:100%;}
-.form-control:focus{border-color:var(--blue);}
-select.form-control{background:#fff;}
-
-/* MODAL */
+.btn-danger{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-danger:hover{background:#a00d25;}
+.btn-outline{background:#fff;color:var(--navy);border-color:var(--border);}
+.btn-outline:hover{border-color:var(--navy);}
+.btn-sm{padding:4px 9px;font-size:.68rem;}
+.req-row{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.req-row:last-child{border-bottom:none;}
+.req-info{flex:1;min-width:170px;}
+.req-name{font-weight:600;font-size:.8rem;color:var(--navy);}
+.req-detail{font-size:.7rem;color:var(--muted);margin-top:1px;}
+.req-actions{display:flex;gap:4px;flex-shrink:0;}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;}
 .modal-bg.open{display:flex;}
-.modal{background:#fff;border-radius:12px;padding:28px 28px 22px;max-width:560px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-.modal h3{font-size:1rem;font-weight:600;color:var(--navy);margin-bottom:16px;}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);}
-
-/* WEEK NAV */
-.week-nav{display:flex;align-items:center;gap:8px;}
-.week-nav .week-label{font-size:.82rem;font-weight:600;color:var(--navy);min-width:220px;text-align:center;font-family:'IBM Plex Mono',monospace;}
-.btn-icon{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--navy);transition:all .15s;}
-.btn-icon:hover{background:var(--gray);}
-
-/* APPROVAL LIST */
-.request-row{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.request-row:last-child{border-bottom:none;}
-.request-info{flex:1;min-width:200px;}
-.request-name{font-weight:600;font-size:.85rem;color:var(--navy);}
-.request-detail{font-size:.75rem;color:var(--muted);margin-top:2px;}
-.request-actions{display:flex;gap:6px;}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:8px;font-size:.83rem;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s ease;max-width:320px;}
+.modal{background:#fff;border-radius:10px;padding:22px 22px 16px;max-width:520px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:0 16px 50px rgba(0,0,0,.3);}
+.modal h3{font-size:.92rem;font-weight:600;color:var(--navy);margin-bottom:12px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.form-group{display:flex;flex-direction:column;gap:3px;}
+.form-label{font-size:.65rem;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;}
+.form-ctrl{padding:7px 9px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:.8rem;outline:none;transition:border-color .2s;width:100%;}
+.form-ctrl:focus{border-color:var(--blue);}
+select.form-ctrl{background:#fff;}
+.modal-btns{display:flex;gap:6px;justify-content:flex-end;margin-top:14px;padding-top:11px;border-top:1px solid var(--border);}
+.modal-err{color:var(--red);font-size:.7rem;min-height:14px;margin-top:5px;font-weight:500;}
+.hours-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;}
+.hour-cell{text-align:center;}
+.hour-cell label{font-size:.62rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;}
+.hour-cell input{width:100%;padding:5px 3px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.78rem;outline:none;}
+.hour-cell input:focus{border-color:var(--blue);}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--navy);color:#fff;padding:9px 15px;border-radius:6px;font-size:.78rem;font-weight:500;z-index:9999;transform:translateY(50px);opacity:0;transition:all .3s;max-width:260px;}
 .toast.show{transform:translateY(0);opacity:1;}
-
-/* WEEK PERIOD BAR */
-.period-bar{background:var(--blue-lt);border:1px solid #c0d8f5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:.82rem;color:var(--blue);display:flex;align-items:center;gap:8px;}
-
-/* LOGOUT BTN */
-.logout-btn{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px 12px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
-.logout-btn:hover{background:rgba(255,255,255,.2);}
-
-/* ADMIN EMPLOYEES */
-.emp-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.75rem;flex-shrink:0;}
-
-/* RESPONSIVE */
-@media(max-width:600px){
-  .form-grid,.form-grid.cols3{grid-template-columns:1fr;}
-  .main{padding:14px;}
-  .header-inner{padding:12px 16px;}
-  .nav-tabs{padding:0 10px;}
-}
+.hdr-right{display:flex;align-items:center;gap:8px;padding:6px 16px;background:var(--navy);color:#fff;font-size:.72rem;flex-shrink:0;}
+.logout-btn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:4px 9px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.logout-btn:hover{background:rgba(255,255,255,.22);}
+.empty{padding:22px;text-align:center;color:var(--muted);font-style:italic;font-size:.8rem;}
+@media(max-width:600px){.sidebar{display:none;}.form-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
-
-<!-- AUTH SCREEN -->
 <div id="authScreen">
   <div class="auth-box">
     <div class="auth-logo">📋</div>
     <h2>Employee Timesheet System</h2>
-    <p>Sign in with your credentials to continue</p>
-    <label class="field-label">Username</label>
-    <input class="field-input" id="authUser" type="text" placeholder="Enter username" autocomplete="off">
-    <label class="field-label">Password</label>
-    <input class="field-input" id="authPass" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
-    <div class="auth-error" id="authError"></div>
-    <button class="auth-btn" onclick="doLogin()">Sign In</button>
-    <p style="margin-top:14px;font-size:.72rem;color:var(--muted);">Contact your administrator if you need access.</p>
+    <p class="auth-sub">Sign in to access your timesheet</p>
+    <label class="f-label">Username</label>
+    <input class="f-input" id="authUser" type="text" placeholder="Enter username" autocomplete="off">
+    <label class="f-label">Password / PIN</label>
+    <input class="f-input" id="authPass" type="password" placeholder="Enter password or PIN" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="auth-err" id="authErr"></div>
+    <button class="auth-btn" onclick="doLogin()">Sign In →</button>
+    <p style="margin-top:11px;font-size:.66rem;color:var(--muted);">Contact your administrator for access.</p>
   </div>
 </div>
-
-<!-- APP SCREEN -->
 <div id="appScreen">
-  <header class="app-header">
-    <div class="header-inner">
-      <div>
-        <div class="header-title" id="headerTitle">Employee Timesheet System</div>
-        <div class="header-sub" id="headerSub">Loading...</div>
+  <div class="hdr-right">
+    <span style="flex:1;font-weight:600;" id="hdrTitle">Timesheet System</span>
+    <span id="hdrUser" style="color:#a0d4ff;"></span>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+  <div class="ribbon" id="ribbon" style="display:none;">
+    <div class="ribbon-inner">
+      <div class="ribbon-group">
+        <div class="ribbon-btns">
+          <button class="rb" id="btnSave" onclick="saveTS()"><span class="ri">💾</span>Save</button>
+          <button class="rb" id="btnSend" onclick="openSendModal()"><span class="ri">📤</span>Send</button>
+        </div>
+        <div class="ribbon-group-label">Submit</div>
       </div>
-      <div class="header-right">
-        <span id="welcomeSpan" style="color:#a0d4ff;font-size:.78rem;"></span>
-        <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+      <div class="ribbon-group">
+        <div class="ribbon-btns">
+          <button class="rb" onclick="openTaskModal()"><span class="ri">➕</span>Add Row</button>
+        </div>
+        <div class="ribbon-group-label">Tasks</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-btns">
+          <button class="rb" onclick="changeWeek(-1)"><span class="ri">⬅</span>Previous</button>
+          <button class="rb" onclick="changeWeek(1)"><span class="ri">➡</span>Next</button>
+        </div>
+        <div class="ribbon-group-label">Period</div>
       </div>
     </div>
-    <div class="nav-tabs" id="navTabs"></div>
-  </header>
-  <div class="main" id="mainContent"></div>
+  </div>
+  <div class="body-layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <div class="main-area" id="mainArea"></div>
+  </div>
 </div>
-
-<!-- MODALS -->
 <div class="modal-bg" id="taskModal">
   <div class="modal">
-    <h3 id="taskModalTitle">Submit Task Request</h3>
+    <h3 id="tModalTitle">Add Task Request</h3>
     <div class="form-grid">
-      <div class="form-group">
+      <div class="form-group" style="grid-column:span 2;">
         <label class="form-label">Task Name / Description</label>
-        <input class="form-control" id="fTaskName" type="text" placeholder="e.g. FWDAir Core HR Integration">
+        <input class="form-ctrl" id="fTask" type="text" placeholder="e.g. FWDAir_Core HR_Integration">
       </div>
       <div class="form-group">
         <label class="form-label">Project Name</label>
-        <input class="form-control" id="fProjectName" type="text" placeholder="e.g. FY26_HCM_Forward">
+        <input class="form-ctrl" id="fProj" type="text" placeholder="e.g. FY26_HCM_Forward">
       </div>
       <div class="form-group">
         <label class="form-label">Time Type</label>
-        <select class="form-control" id="fTimeType">
-          <option>Actual</option>
-          <option>Overtime</option>
-          <option>Leave</option>
-        </select>
+        <select class="form-ctrl" id="fType"><option>Actual</option><option>Overtime</option><option>Leave</option></select>
       </div>
-      <div class="form-group">
-        <label class="form-label">Week (Mon)</label>
-        <input class="form-control" id="fWeekStart" type="date">
+      <div class="form-group" style="grid-column:span 2;">
+        <label class="form-label">Week Start (Friday)</label>
+        <input class="form-ctrl" id="fWeek" type="date">
       </div>
     </div>
-    <div style="margin-top:14px;padding:12px 14px;background:var(--gray);border-radius:6px;">
-      <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Hours per day (leave blank for 0)</div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;" id="hoursInputs"></div>
+    <div style="padding:9px 11px;background:var(--gray);border-radius:5px;margin-top:9px;">
+      <div style="font-size:.62rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Hours per day</div>
+      <div class="hours-grid" id="hoursGrid"></div>
     </div>
-    <div id="taskModalError" style="color:var(--red);font-size:.78rem;min-height:16px;margin-top:8px;font-weight:500;"></div>
+    <div class="modal-err" id="taskErr"></div>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="closeModal('taskModal')">Cancel</button>
-      <button class="btn btn-primary" id="taskModalSubmit" onclick="submitTaskRequest()">Submit Request</button>
+      <button class="btn btn-primary" onclick="submitTask()">Submit Request</button>
     </div>
   </div>
 </div>
-
-<div class="modal-bg" id="timesheetModal">
-  <div class="modal">
-    <h3>Submit Timesheet for Approval</h3>
-    <p id="timesheetModalMsg" style="font-size:.85rem;color:var(--muted);margin-bottom:16px;"></p>
+<div class="modal-bg" id="sendModal">
+  <div class="modal" style="max-width:400px;">
+    <h3>Send Timesheet to Admin</h3>
+    <p id="sendMsg" style="font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.5;"></p>
     <div class="modal-btns">
-      <button class="btn btn-outline" onclick="closeModal('timesheetModal')">Cancel</button>
-      <button class="btn btn-success" onclick="confirmSubmitTimesheet()">Yes, Submit</button>
+      <button class="btn btn-outline" onclick="closeModal('sendModal')">Cancel</button>
+      <button class="btn btn-success" onclick="confirmSend()">Send</button>
     </div>
   </div>
 </div>
-
 <div class="modal-bg" id="rejectModal">
-  <div class="modal">
-    <h3>Reject Request</h3>
+  <div class="modal" style="max-width:360px;">
+    <h3>Reject</h3>
     <div class="form-group">
       <label class="form-label">Reason (optional)</label>
-      <textarea class="form-control" id="rejectReason" rows="3" placeholder="Provide a reason for rejection..."></textarea>
+      <textarea class="form-ctrl" id="rejectReason" rows="3" placeholder="Enter reason..."></textarea>
     </div>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="closeModal('rejectModal')">Cancel</button>
@@ -252,689 +224,259 @@ select.form-control{background:#fff;}
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
-
 <script>
-// ══════════════════════════════════════════════════════════
-// DATA STORE
-// ══════════════════════════════════════════════════════════
-const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const DAY_KEYS = ['mon','tue','wed','thu','fri','sat','sun'];
-
-const USERS = {
-  'admin':                  {pass:'admin2025', role:'admin',    name:'Mahusay, Arey',            email:'arey.mahusay@accenture.com'},
-  'donna.lyn.t.leonen':     {pass:'224906',    role:'employee', name:'Leonen, Donna Lyn T.',     email:'donna.lyn.t.leonen@accenture.com'},
-  'nathaniel.vinluan':      {pass:'435003',    role:'employee', name:'Vinluan, Nathaniel',        email:'nathaniel.vinluan@accenture.com'},
-  'allen.l.d.enriquez':     {pass:'626925',    role:'employee', name:'Enriquez, Allen L. D.',    email:'allen.l.d.enriquez@accenture.com'},
-  'angel.ann.l.enriquez':   {pass:'636685',    role:'employee', name:'Enriquez, Angel Ann L.',   email:'angel.ann.l.enriquez@accenture.com'},
-  'arey.mahusay':           {pass:'778636',    role:'employee', name:'Mahusay, Arey',             email:'arey.mahusay@accenture.com'},
-  'ermina.m.lao':           {pass:'207622',    role:'employee', name:'Lao, Ermina M.',            email:'ermina.m.lao@accenture.com'},
+const DAYS=['Fri','Sat','Sun','Mon','Tue','Wed','Thu'];
+const DK=['fri','sat','sun','mon','tue','wed','thu'];
+const USERS={
+  'admin':{pass:'admin2025',role:'admin',name:'Mahusay, Arey',email:'arey.mahusay@accenture.com'},
+  'donna.lyn.t.leonen':{pass:'224906',role:'employee',name:'Leonen, Donna Lyn T.',email:'donna.lyn.t.leonen@accenture.com'},
+  'nathaniel.vinluan':{pass:'435003',role:'employee',name:'Vinluan, Nathaniel',email:'nathaniel.vinluan@accenture.com'},
+  'allen.l.d.enriquez':{pass:'626925',role:'employee',name:'Enriquez, Allen L. D.',email:'allen.l.d.enriquez@accenture.com'},
+  'angel.ann.l.enriquez':{pass:'636685',role:'employee',name:'Enriquez, Angel Ann L.',email:'angel.ann.l.enriquez@accenture.com'},
+  'arey.mahusay':{pass:'778636',role:'employee',name:'Mahusay, Arey',email:'arey.mahusay@accenture.com'},
+  'ermina.m.lao':{pass:'207622',role:'employee',name:'Lao, Ermina M.',email:'ermina.m.lao@accenture.com'},
 };
-
-// Persistent storage
-function getStore(key, def){try{return JSON.parse(localStorage.getItem(key))||def;}catch{return def;}}
-function setStore(key,val){localStorage.setItem(key,JSON.stringify(val));}
-
-function getRequests(){return getStore('ts_requests',[]);}
-function saveRequests(r){setStore('ts_requests',r);}
-function getTimesheets(){return getStore('ts_timesheets',[]);}
-function saveTimesheets(t){setStore('ts_timesheets',t);}
-
-let currentUser = null;
-let currentWeekOffset = 0;
-let editingTaskId = null;
-let rejectingId = null;
-let submittingWeek = null;
-
-// ══════════════════════════════════════════════════════════
-// WEEK UTILITIES
-// ══════════════════════════════════════════════════════════
-function getWeekStart(offset){
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day===0?-6:1);
-  d.setDate(diff + offset*7);
-  d.setHours(0,0,0,0);
-  return d;
-}
-function formatDate(d){
-  return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
-}
-function formatDateISO(d){
-  return d.toISOString().split('T')[0];
-}
-function getWeekLabel(offset){
-  const start = getWeekStart(offset);
-  const end = new Date(start); end.setDate(start.getDate()+6);
-  return `${formatDate(start)} – ${formatDate(end)}`;
-}
-function getWeekDates(offset){
-  const start = getWeekStart(offset);
-  return DAY_KEYS.map((_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d;});
-}
-function weekKey(offset){
-  return formatDateISO(getWeekStart(offset));
-}
-function weekKeyFromDate(dateStr){
-  const d = new Date(dateStr);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day===0?-6:1);
-  d.setDate(diff);
-  d.setHours(0,0,0,0);
-  return formatDateISO(d);
-}
-
-// ══════════════════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════════════════
+const G=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
+const S=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const getR=()=>G('ts_r',[]);const setR=v=>S('ts_r',v);
+const getT=()=>G('ts_t',[]);const setT=v=>S('ts_t',v);
+let CU=null,WO=0,RJID=null,RJTYPE='req',ED=null,CV='ts';
+function getFri(o){const d=new Date();const dy=d.getDay();const df=dy>=5?dy-5:dy+2;d.setDate(d.getDate()-df+o*7);d.setHours(0,0,0,0);return d;}
+function getDates(o){const f=getFri(o);return DK.map((_,i)=>{const d=new Date(f);d.setDate(f.getDate()+i);return d;});}
+function wk(o){return iso(getFri(o));}
+function iso(d){return d.toISOString().split('T')[0];}
+function fm(d){return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();}
+function fs(d){return (d.getMonth()+1)+'/'+d.getDate();}
+function wkLabel(o){const ds=getDates(o);return fm(ds[0])+' 12:00 AM - '+fm(ds[6])+' 11:59 PM';}
+function wkShort(o){const ds=getDates(o);return fs(ds[0])+' – '+fs(ds[6]);}
 function doLogin(){
-  const u = document.getElementById('authUser').value.trim().toLowerCase();
-  const p = document.getElementById('authPass').value;
-  const errEl = document.getElementById('authError');
-  if(!USERS[u] || USERS[u].pass !== p){
-    errEl.textContent = 'Invalid username or password.';
-    document.getElementById('authPass').value='';
-    return;
-  }
-  currentUser = {...USERS[u], username: u};
+  const u=document.getElementById('authUser').value.trim().toLowerCase();
+  const p=document.getElementById('authPass').value;
+  if(!USERS[u]||USERS[u].pass!==p){document.getElementById('authErr').textContent='Invalid username or password.';document.getElementById('authPass').value='';return;}
+  CU={...USERS[u],username:u};
   document.getElementById('authScreen').style.display='none';
-  document.getElementById('appScreen').style.display='block';
+  document.getElementById('appScreen').classList.add('show');
   initApp();
 }
 function doLogout(){
-  currentUser=null;currentWeekOffset=0;
+  CU=null;WO=0;CV='ts';
   document.getElementById('authScreen').style.display='flex';
-  document.getElementById('appScreen').style.display='none';
-  document.getElementById('authUser').value='';
-  document.getElementById('authPass').value='';
-  document.getElementById('authError').textContent='';
+  document.getElementById('appScreen').classList.remove('show');
+  document.getElementById('authUser').value='';document.getElementById('authPass').value='';document.getElementById('authErr').textContent='';
 }
-
-// ══════════════════════════════════════════════════════════
-// APP INIT
-// ══════════════════════════════════════════════════════════
 function initApp(){
-  document.getElementById('welcomeSpan').textContent = 'Welcome, '+currentUser.name.split(',')[1].trim()+'!';
-  if(currentUser.role==='admin'){
-    document.getElementById('headerTitle').textContent='Admin — Timesheet Manager';
-    document.getElementById('headerSub').textContent='Approve requests & download reports';
-    buildAdminNav();
-    renderAdminDashboard();
+  document.getElementById('hdrUser').textContent='Welcome, '+CU.name.split(',')[1].trim()+'  |  '+CU.email;
+  if(CU.role==='admin'){
+    document.getElementById('hdrTitle').textContent='Timesheet Manager — Admin';
+    document.getElementById('ribbon').style.display='none';
+    document.getElementById('sidebar').innerHTML=`<div class="sidebar-section"><div class="sid-label">Admin</div>
+      <a class="sid-item active" id="sv-db" onclick="sv('db')">Dashboard</a>
+      <a class="sid-item" id="sv-rq" onclick="sv('rq')">Task Requests</a>
+      <a class="sid-item" id="sv-ts" onclick="sv('ts')">Timesheets</a>
+      <a class="sid-item" id="sv-em" onclick="sv('em')">Employees</a>
+    </div>`;
+    adminView('db');
   } else {
-    document.getElementById('headerTitle').textContent='Employee Timesheet';
-    document.getElementById('headerSub').textContent=currentUser.name+' · '+currentUser.email;
-    buildEmployeeNav();
-    renderEmployeeTimesheet();
+    document.getElementById('hdrTitle').textContent='Timesheet';
+    document.getElementById('ribbon').style.display='block';
+    document.getElementById('sidebar').innerHTML=`<div class="sidebar-section"><div class="sid-label">Navigation</div>
+      <a class="sid-item active" id="sv-ts" onclick="sv2('ts')">Timesheet</a>
+      <a class="sid-item" id="sv-rq" onclick="sv2('rq')">My Requests</a>
+    </div>`;
+    renderTS();
   }
 }
-
-// ══════════════════════════════════════════════════════════
-// EMPLOYEE NAV & VIEWS
-// ══════════════════════════════════════════════════════════
-function buildEmployeeNav(){
-  document.getElementById('navTabs').innerHTML=`
-    <button class="nav-tab active" onclick="switchTab(this,'empTimesheet')">My Timesheet</button>
-    <button class="nav-tab" onclick="switchTab(this,'empRequests')">My Requests</button>
-  `;
-}
-
-function renderEmployeeTimesheet(){
-  const wk = weekKey(currentWeekOffset);
-  const requests = getRequests().filter(r=>r.employeeUser===currentUser.username && r.status==='approved' && weekKeyFromDate(r.weekStart)===wk);
-  const timesheets = getTimesheets();
-  const submitted = timesheets.find(t=>t.employeeUser===currentUser.username && t.weekKey===wk);
-  const dates = getWeekDates(currentWeekOffset);
-
-  // Total hours per day
-  const dayTotals = {};
-  DAY_KEYS.forEach(d=>dayTotals[d]=0);
-  requests.forEach(r=>{DAY_KEYS.forEach(d=>{dayTotals[d]+=(r.hours[d]||0);});});
-  const totalHours = DAY_KEYS.reduce((s,d)=>s+dayTotals[d],0);
-
-  let statusMsg='';
-  if(submitted){
-    if(submitted.status==='approved') statusMsg=`<span style="color:var(--green);font-weight:600;">&#10003; Your timesheet has been approved by ${submitted.approvedBy||'Admin'}.</span>`;
-    else if(submitted.status==='submitted') statusMsg=`<span style="color:var(--amber);font-weight:600;">&#9654; Timesheet submitted — pending admin approval.</span>`;
+function sv(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');adminView(v);}
+function sv2(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');if(v==='ts')renderTS();else renderMyReqs();}
+function renderTS(){
+  const w=wk(WO),ds=getDates(WO);
+  const reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
+  const dt={};DK.forEach(d=>dt[d]=0);
+  reqs.forEach(r=>DK.forEach(d=>{dt[d]+=(r.hrs[d]||0);}));
+  const totH=DK.reduce((s,d)=>s+dt[d],0);
+  let abar='';
+  if(ts){
+    if(ts.status==='approved') abar=`<div class="approval-bar">&#9432; Your timesheet has been approved by <strong>${ts.approvedBy||'Admin'}</strong>. &nbsp;<strong>Total: ${totH}h</strong> &nbsp;&nbsp;<strong>Period:</strong> ${wkLabel(WO)}</div>`;
+    else if(ts.status==='sent') abar=`<div class="approval-bar" style="background:#fffbe6;border-color:#f0c040;color:#7a5000;">&#9203; Timesheet sent — awaiting admin approval. &nbsp;<strong>Total: ${totH}h</strong></div>`;
   }
-
-  let rowsHtml='';
-  if(requests.length===0){
-    rowsHtml=`<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--muted);font-style:italic;">No approved tasks for this week. Submit a task request to get started.</td></tr>`;
-  } else {
-    requests.forEach(r=>{
-      const dayCells = DAY_KEYS.map(d=>`<td class="hours ${r.hours[d]?'filled':'empty'}">${r.hours[d]||''}</td>`).join('');
-      rowsHtml+=`<tr>
-        <td class="task-name">${r.taskName}</td>
-        <td class="project">${r.projectName}</td>
-        <td style="text-align:center;">${r.timeType}</td>
-        ${dayCells}
-      </tr>`;
-    });
-    const totalCells = DAY_KEYS.map(d=>`<td class="hours" style="color:var(--navy);">${dayTotals[d]||''}</td>`).join('');
-    rowsHtml+=`<tr class="total-row">
-      <td colspan="2" style="text-align:right;color:var(--muted);">Total work</td>
-      <td></td>
-      ${totalCells}
-    </tr>`;
-  }
-
-  const canSubmit = requests.length>0 && !submitted;
-
-  document.getElementById('mainContent').innerHTML=`
-    <div class="panel active" id="empTimesheet">
-      <div class="stats-row">
-        <div class="stat-box"><div class="stat-label">Total Hours This Week</div><div class="stat-val ${totalHours>0?'green':''}">${totalHours}h</div></div>
-        <div class="stat-box"><div class="stat-label">Approved Tasks</div><div class="stat-val">${requests.length}</div></div>
-        <div class="stat-box"><div class="stat-label">Timesheet Status</div><div class="stat-val" style="font-size:.9rem;margin-top:4px;">${submitted ? (submitted.status==='approved'?'<span class="badge approved">Approved</span>':'<span class="badge submitted">Submitted</span>') : '<span class="badge draft">Draft</span>'}</div></div>
-        <div class="stat-box"><div class="stat-label">Pending Requests</div><div class="stat-val amber">${getRequests().filter(r=>r.employeeUser===currentUser.username&&r.status==='pending').length}</div></div>
-      </div>
-
-      ${statusMsg?`<div class="period-bar">&#9432; ${statusMsg} &nbsp;<strong>Total: ${totalHours}h</strong> &nbsp;Period: ${getWeekLabel(currentWeekOffset)}</div>`:''}
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Timesheet</div>
-          <div class="week-nav">
-            <button class="btn-icon" onclick="changeWeek(-1)">&#8592;</button>
-            <span class="week-label">${getWeekLabel(currentWeekOffset)}</span>
-            <button class="btn-icon" onclick="changeWeek(1)">&#8594;</button>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-outline btn-sm" onclick="openTaskModal()">+ Add Task Request</button>
-            ${canSubmit?`<button class="btn btn-success btn-sm" onclick="openTimesheetSubmit()">Submit Timesheet</button>`:''}
-          </div>
-        </div>
-        <div class="card-body" style="padding:0;">
-          <div class="ts-wrap">
-            <table class="ts">
-              <thead>
-                <tr>
-                  <th class="left" style="min-width:200px;">Task Name/Description</th>
-                  <th class="left">Project Name</th>
-                  <th>Time Type</th>
-                  ${dates.map((d,i)=>`<th>${DAYS[i]}<br><span style="font-size:.65rem;font-weight:400;">${d.getMonth()+1}/${d.getDate()}</span></th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>${rowsHtml}</tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  document.getElementById('mainContent').innerHTML += buildRequestsPanelHTML();
-  syncTabs();
-}
-
-function buildRequestsPanelHTML(){
-  const requests = getRequests().filter(r=>r.employeeUser===currentUser.username).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   let rows='';
-  if(requests.length===0){
-    rows=`<div style="padding:28px;text-align:center;color:var(--muted);font-style:italic;">No task requests yet.</div>`;
+  if(reqs.length===0){
+    rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Click <strong>Add Row</strong> in the ribbon to submit a task request.</td></tr>`;
   } else {
-    requests.forEach(r=>{
-      const totalH = DAY_KEYS.reduce((s,d)=>s+(r.hours[d]||0),0);
-      rows+=`<div class="request-row">
-        <div class="request-info">
-          <div class="request-name">${r.taskName}</div>
-          <div class="request-detail">${r.projectName} &nbsp;·&nbsp; ${r.timeType} &nbsp;·&nbsp; Week of ${formatDate(new Date(r.weekStart))} &nbsp;·&nbsp; Total: ${totalH}h</div>
-          ${r.rejectReason?`<div style="font-size:.72rem;color:var(--red);margin-top:2px;">Rejected: ${r.rejectReason}</div>`:''}
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="badge ${r.status}">${r.status}</span>
-          ${r.status==='pending'?`<button class="btn btn-outline btn-sm" onclick="editRequest('${r.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteRequest('${r.id}')">Delete</button>`:''}
-        </div>
-      </div>`;
+    reqs.forEach(r=>{
+      const cells=DK.map((d,i)=>{const h=r.hrs[d]||0;const wk2=(i===1||i===2);return `<td class="hrs${h?' ':'  empty'}${wk2?' wknd':''}">${h||''}</td>`;}).join('');
+      rows+=`<tr><td style="width:26px;text-align:center;"><input type="checkbox"></td><td class="task-name">${r.task}</td><td class="project">${r.proj}</td><td class="ttype">${r.ttype}</td>${cells}</tr>`;
     });
+    const tc=DK.map((d,i)=>{const wk2=(i===1||i===2);return `<td class="hrs${wk2?' wknd':''}">${dt[d]||''}</td>`;}).join('');
+    rows+=`<tr class="total-row"><td></td><td></td><td style="text-align:right;color:var(--muted);padding-right:8px;">Total work</td><td></td>${tc}</tr>`;
   }
-  return `<div class="panel" id="empRequests">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">My Task Requests</div>
-        <button class="btn btn-primary btn-sm" onclick="openTaskModal()">+ New Request</button>
+  const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]}<br><span style="font-size:.58rem;font-weight:400;">${fs(d)}</span></th>`).join('');
+  const canSend=reqs.length>0&&(!ts||ts.status==='draft');
+  document.getElementById('btnSend').disabled=!canSend;
+  document.getElementById('mainArea').innerHTML=`${abar}
+    <div class="week-nav-bar">
+      <div style="font-size:.76rem;color:var(--muted);">Period: <strong style="color:var(--navy);">${wkLabel(WO)}</strong></div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="wn-btn" onclick="changeWeek(-1)">&#9664;</button>
+        <span class="wk-label">${wkShort(WO)}</span>
+        <button class="wn-btn" onclick="changeWeek(1)">&#9654;</button>
+        <span class="badge ${ts?ts.status:'draft'}" style="margin-left:5px;">${ts?ts.status:'draft'}</span>
       </div>
-      <div>${rows}</div>
     </div>
-  </div>`;
+    <div class="ts-container">
+      <div class="ts-wrap">
+        <table class="ts">
+          <thead><tr>
+            <th style="width:26px;"></th>
+            <th class="left" style="min-width:190px;">Task_Name</th>
+            <th class="left" style="min-width:130px;">Project</th>
+            <th style="min-width:70px;">Time_Type</th>
+            ${dh}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
-
-function changeWeek(dir){
-  currentWeekOffset+=dir;
-  renderEmployeeTimesheet();
-  syncTabs();
-}
-
-// ══════════════════════════════════════════════════════════
-// TASK REQUEST MODAL
-// ══════════════════════════════════════════════════════════
-function openTaskModal(editId){
-  editingTaskId = editId||null;
-  document.getElementById('taskModalTitle').textContent = editId?'Edit Task Request':'Submit Task Request';
-  document.getElementById('taskModalSubmit').textContent = editId?'Update Request':'Submit Request';
-
-  // Populate week dates inputs
-  const wkStart = getWeekStart(currentWeekOffset);
-  document.getElementById('fWeekStart').value = formatDateISO(wkStart);
-
-  let hoursHtml='';
-  DAYS.forEach((d,i)=>{
-    hoursHtml+=`<div style="text-align:center;">
-      <div style="font-size:.65rem;color:var(--muted);font-weight:600;margin-bottom:4px;">${d}</div>
-      <input type="number" min="0" max="24" step="0.5" id="fHour_${DAY_KEYS[i]}" style="width:100%;padding:5px 4px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.82rem;outline:none;" placeholder="0">
+function renderMyReqs(){
+  const reqs=getR().filter(r=>r.emp===CU.username).sort((a,b)=>new Date(b.ca||0)-new Date(a.ca||0));
+  let rows=reqs.length===0?`<div class="empty">No task requests yet.</div>`:'';
+  reqs.forEach(r=>{
+    const th=DK.reduce((s,d)=>s+(r.hrs[d]||0),0);
+    rows+=`<div class="req-row">
+      <div class="req-info"><div class="req-name">${r.task}</div>
+      <div class="req-detail">${r.proj} &middot; ${r.ttype} &middot; Week: ${r.wk} &middot; Total: ${th}h</div>
+      ${r.rr?`<div style="font-size:.68rem;color:var(--red);">Rejected: ${r.rr}</div>`:''}</div>
+      <div class="req-actions"><span class="badge ${r.status}">${r.status}</span>
+      ${r.status==='pending'?`<button class="btn btn-outline btn-sm" onclick="editReq('${r.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="delReq('${r.id}')">Delete</button>`:''}</div>
     </div>`;
   });
-  document.getElementById('hoursInputs').innerHTML=hoursHtml;
-
-  if(editId){
-    const r = getRequests().find(r=>r.id===editId);
-    if(r){
-      document.getElementById('fTaskName').value=r.taskName;
-      document.getElementById('fProjectName').value=r.projectName;
-      document.getElementById('fTimeType').value=r.timeType;
-      document.getElementById('fWeekStart').value=r.weekStart;
-      DAY_KEYS.forEach(d=>{const el=document.getElementById('fHour_'+d);if(el)el.value=r.hours[d]||'';});
-    }
-  } else {
-    document.getElementById('fTaskName').value='';
-    document.getElementById('fProjectName').value='';
-    document.getElementById('fTimeType').value='Actual';
-  }
-  document.getElementById('taskModalError').textContent='';
+  document.getElementById('mainArea').innerHTML=`<div class="panel-area"><div class="card">
+    <div class="card-head"><span class="card-title">My Task Requests</span><button class="btn btn-primary btn-sm" onclick="openTaskModal()">+ Add Request</button></div>
+    <div>${rows}</div>
+  </div></div>`;
+}
+function changeWeek(d){WO+=d;renderTS();}
+function openTaskModal(eid){
+  ED=eid||null;
+  document.getElementById('tModalTitle').textContent=eid?'Edit Task Request':'Add Task Request';
+  document.getElementById('fWeek').value=iso(getFri(WO));
+  let hg='';
+  DAYS.forEach((d,i)=>{hg+=`<div class="hour-cell"><label>${d}</label><input type="number" min="0" max="24" step="0.5" id="fh_${DK[i]}" placeholder="0"></div>`;});
+  document.getElementById('hoursGrid').innerHTML=hg;
+  if(eid){const r=getR().find(r=>r.id===eid);if(r){document.getElementById('fTask').value=r.task;document.getElementById('fProj').value=r.proj;document.getElementById('fType').value=r.ttype;document.getElementById('fWeek').value=r.wk;DK.forEach(d=>{const el=document.getElementById('fh_'+d);if(el)el.value=r.hrs[d]||'';});}}
+  else{document.getElementById('fTask').value='';document.getElementById('fProj').value='';document.getElementById('fType').value='Actual';}
+  document.getElementById('taskErr').textContent='';
   document.getElementById('taskModal').classList.add('open');
 }
-
-function editRequest(id){openTaskModal(id);}
-
-function submitTaskRequest(){
-  const taskName = document.getElementById('fTaskName').value.trim();
-  const projectName = document.getElementById('fProjectName').value.trim();
-  const timeType = document.getElementById('fTimeType').value;
-  const weekStart = document.getElementById('fWeekStart').value;
-  const errEl = document.getElementById('taskModalError');
-
-  if(!taskName){errEl.textContent='Task name is required.';return;}
-  if(!projectName){errEl.textContent='Project name is required.';return;}
-  if(!weekStart){errEl.textContent='Week start date is required.';return;}
-
-  const hours={};
-  DAY_KEYS.forEach(d=>{
-    const v = parseFloat(document.getElementById('fHour_'+d).value)||0;
-    hours[d]=v;
-  });
-  const totalH = DAY_KEYS.reduce((s,d)=>s+hours[d],0);
-  if(totalH===0){errEl.textContent='Please enter hours for at least one day.';return;}
-
-  const requests = getRequests();
-  if(editingTaskId){
-    const idx = requests.findIndex(r=>r.id===editingTaskId);
-    if(idx>-1){requests[idx]={...requests[idx],taskName,projectName,timeType,weekStart,hours,status:'pending',updatedAt:new Date().toISOString()};}
-    showToast('Task request updated!');
-  } else {
-    requests.push({id:'req_'+Date.now(),employeeUser:currentUser.username,employeeName:currentUser.name,taskName,projectName,timeType,weekStart,hours,status:'pending',createdAt:new Date().toISOString()});
-    showToast('Task request submitted!');
-  }
-  saveRequests(requests);
-  closeModal('taskModal');
-  renderEmployeeTimesheet();
-  syncTabs();
+function editReq(id){openTaskModal(id);}
+function delReq(id){if(!confirm('Delete?'))return;setR(getR().filter(r=>r.id!==id));showToast('Deleted.');renderMyReqs();}
+function submitTask(){
+  const task=document.getElementById('fTask').value.trim(),proj=document.getElementById('fProj').value.trim(),ttype=document.getElementById('fType').value,wkv=document.getElementById('fWeek').value,err=document.getElementById('taskErr');
+  if(!task){err.textContent='Task name required.';return;}
+  if(!proj){err.textContent='Project name required.';return;}
+  if(!wkv){err.textContent='Week required.';return;}
+  const hrs={};DK.forEach(d=>{hrs[d]=parseFloat(document.getElementById('fh_'+d).value)||0;});
+  if(DK.reduce((s,d)=>s+hrs[d],0)===0){err.textContent='Enter hours for at least one day.';return;}
+  const reqs=getR();
+  if(ED){const i=reqs.findIndex(r=>r.id===ED);if(i>-1)reqs[i]={...reqs[i],task,proj,ttype,wk:wkv,hrs,status:'pending',ua:new Date().toISOString()};showToast('Updated!');}
+  else{reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:wkv,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
+  setR(reqs);closeModal('taskModal');
+  if(CV==='ts')renderTS();else renderMyReqs();
 }
-
-function deleteRequest(id){
-  if(!confirm('Delete this task request?'))return;
-  saveRequests(getRequests().filter(r=>r.id!==id));
-  showToast('Request deleted.');
-  renderEmployeeTimesheet();
-  syncTabs();
+function saveTS(){showToast('Saved as draft.');}
+function openSendModal(){
+  const w=wk(WO),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  if(reqs.length===0){showToast('No approved tasks to send.');return;}
+  const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
+  document.getElementById('sendMsg').textContent=`Send your timesheet for the period "${wkLabel(WO)}" to the admin? Total hours: ${th}h`;
+  document.getElementById('sendModal').classList.add('open');
 }
-
-// ══════════════════════════════════════════════════════════
-// TIMESHEET SUBMIT
-// ══════════════════════════════════════════════════════════
-function openTimesheetSubmit(){
-  submittingWeek = weekKey(currentWeekOffset);
-  document.getElementById('timesheetModalMsg').textContent=`Submit your timesheet for the week of ${getWeekLabel(currentWeekOffset)}? Once submitted, the admin will review and approve it.`;
-  document.getElementById('timesheetModal').classList.add('open');
+function confirmSend(){
+  const w=wk(WO),tl=getT(),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
+  const ei=tl.findIndex(t=>t.emp===CU.username&&t.wk===w);
+  const en={id:'ts'+Date.now(),emp:CU.username,empName:CU.name,wk:w,wkLabel:wkLabel(WO),th,status:'sent',sentAt:new Date().toISOString()};
+  if(ei>-1)tl[ei]=en;else tl.push(en);
+  setT(tl);closeModal('sendModal');showToast('Timesheet sent to admin!');renderTS();
 }
-function confirmSubmitTimesheet(){
-  const timesheets = getTimesheets();
-  const existing = timesheets.findIndex(t=>t.employeeUser===currentUser.username&&t.weekKey===submittingWeek);
-  const entry = {
-    id:'ts_'+Date.now(),
-    employeeUser:currentUser.username,
-    employeeName:currentUser.name,
-    weekKey:submittingWeek,
-    weekLabel:getWeekLabel(currentWeekOffset),
-    status:'submitted',
-    submittedAt:new Date().toISOString(),
-  };
-  if(existing>-1)timesheets[existing]=entry;
-  else timesheets.push(entry);
-  saveTimesheets(timesheets);
-  closeModal('timesheetModal');
-  showToast('Timesheet submitted for approval!');
-  renderEmployeeTimesheet();
-  syncTabs();
-}
-
-// ══════════════════════════════════════════════════════════
-// ADMIN NAV & VIEWS
-// ══════════════════════════════════════════════════════════
-function buildAdminNav(){
-  document.getElementById('navTabs').innerHTML=`
-    <button class="nav-tab active" onclick="switchTab(this,'adminDashboard')">Dashboard</button>
-    <button class="nav-tab" onclick="switchTab(this,'adminRequests')">Task Requests</button>
-    <button class="nav-tab" onclick="switchTab(this,'adminTimesheets')">Timesheets</button>
-    <button class="nav-tab" onclick="switchTab(this,'adminEmployees')">Employees</button>
-  `;
-}
-
-function renderAdminDashboard(){
-  const requests = getRequests();
-  const timesheets = getTimesheets();
-  const pending = requests.filter(r=>r.status==='pending').length;
-  const approved = requests.filter(r=>r.status==='approved').length;
-  const tsPending = timesheets.filter(t=>t.status==='submitted').length;
-  const tsApproved = timesheets.filter(t=>t.status==='approved').length;
-
-  const pendingRequests = requests.filter(r=>r.status==='pending').slice(0,8);
-  const pendingTimesheets = timesheets.filter(t=>t.status==='submitted').slice(0,8);
-
-  let pendingReqHtml = pendingRequests.length===0?`<div style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No pending requests.</div>`:'';
-  pendingRequests.forEach(r=>{
-    const totalH = DAY_KEYS.reduce((s,d)=>s+(r.hours[d]||0),0);
-    pendingReqHtml+=`<div class="request-row">
-      <div class="request-info">
-        <div class="request-name">${r.employeeName}</div>
-        <div class="request-detail">${r.taskName} &nbsp;·&nbsp; ${r.projectName} &nbsp;·&nbsp; Week of ${formatDate(new Date(r.weekStart))} &nbsp;·&nbsp; ${totalH}h</div>
-      </div>
-      <div class="request-actions">
-        <span class="badge pending">Pending</span>
-        <button class="btn btn-success btn-sm" onclick="approveRequest('${r.id}')">Approve</button>
-        <button class="btn btn-danger btn-sm" onclick="openRejectModal('${r.id}')">Reject</button>
-      </div>
-    </div>`;
-  });
-
-  let pendingTsHtml = pendingTimesheets.length===0?`<div style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No submitted timesheets awaiting approval.</div>`:'';
-  pendingTimesheets.forEach(t=>{
-    const empReqs = getRequests().filter(r=>r.employeeUser===t.employeeUser&&r.status==='approved'&&weekKeyFromDate(r.weekStart)===t.weekKey);
-    const totalH = empReqs.reduce((s,r)=>s+DAY_KEYS.reduce((ss,d)=>ss+(r.hours[d]||0),0),0);
-    pendingTsHtml+=`<div class="request-row">
-      <div class="request-info">
-        <div class="request-name">${t.employeeName}</div>
-        <div class="request-detail">Week: ${t.weekLabel} &nbsp;·&nbsp; Total: ${totalH}h &nbsp;·&nbsp; Submitted: ${new Date(t.submittedAt).toLocaleDateString()}</div>
-      </div>
-      <div class="request-actions">
-        <span class="badge submitted">Submitted</span>
-        <button class="btn btn-success btn-sm" onclick="approveTimesheet('${t.id}')">Approve</button>
-        <button class="btn btn-danger btn-sm" onclick="openRejectModal('${t.id}','ts')">Reject</button>
-      </div>
-    </div>`;
-  });
-
-  document.getElementById('mainContent').innerHTML=`
-    <div class="panel active" id="adminDashboard">
+function adminView(v){
+  const reqs=getR(),tl=getT();
+  if(v==='db'){
+    const pr=reqs.filter(r=>r.status==='pending'),st=tl.filter(t=>t.status==='sent');
+    let prH=pr.length===0?`<div class="empty">No pending requests.</div>`:'';
+    pr.slice(0,8).forEach(r=>{const th=DK.reduce((s,d)=>s+(r.hrs[d]||0),0);prH+=`<div class="req-row"><div class="req-info"><div class="req-name">${r.empName}</div><div class="req-detail">${r.task} &middot; ${r.proj} &middot; ${r.ttype} &middot; ${th}h</div></div><div class="req-actions"><span class="badge pending">pending</span><button class="btn btn-success btn-sm" onclick="appR('${r.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${r.id}','req')">Reject</button></div></div>`;});
+    let stH=st.length===0?`<div class="empty">No timesheets awaiting approval.</div>`:'';
+    st.slice(0,8).forEach(t=>{stH+=`<div class="req-row"><div class="req-info"><div class="req-name">${t.empName}</div><div class="req-detail">Period: ${t.wkLabel} &middot; Total: ${t.th}h &middot; Sent: ${new Date(t.sentAt).toLocaleDateString()}</div></div><div class="req-actions"><span class="badge sent">sent</span><button class="btn btn-success btn-sm" onclick="appT('${t.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${t.id}','ts')">Reject</button><button class="btn btn-outline btn-sm" onclick="dlOne('${t.emp}','${t.wk}')">&#8595; CSV</button></div></div>`;});
+    document.getElementById('mainArea').innerHTML=`<div class="panel-area">
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-label">Pending Requests</div><div class="stat-val amber">${pending}</div></div>
-        <div class="stat-box"><div class="stat-label">Approved Requests</div><div class="stat-val green">${approved}</div></div>
-        <div class="stat-box"><div class="stat-label">Timesheets Pending</div><div class="stat-val amber">${tsPending}</div></div>
-        <div class="stat-box"><div class="stat-label">Timesheets Approved</div><div class="stat-val green">${tsApproved}</div></div>
+        <div class="stat-box"><div class="stat-label">Pending Requests</div><div class="stat-val amber">${pr.length}</div></div>
+        <div class="stat-box"><div class="stat-label">Approved Requests</div><div class="stat-val green">${reqs.filter(r=>r.status==='approved').length}</div></div>
+        <div class="stat-box"><div class="stat-label">Sent Timesheets</div><div class="stat-val amber">${st.length}</div></div>
+        <div class="stat-box"><div class="stat-label">Approved Timesheets</div><div class="stat-val green">${tl.filter(t=>t.status==='approved').length}</div></div>
       </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Pending Task Requests</div><a href="#" onclick="switchTabByName('adminRequests')" style="font-size:.78rem;color:var(--blue);">View all</a></div>
-        <div>${pendingReqHtml}</div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Timesheets Awaiting Approval</div><a href="#" onclick="switchTabByName('adminTimesheets')" style="font-size:.78rem;color:var(--blue);">View all</a></div>
-        <div>${pendingTsHtml}</div>
-      </div>
-    </div>
-
-    <div class="panel" id="adminRequests">
-      ${buildAdminRequestsHTML()}
-    </div>
-
-    <div class="panel" id="adminTimesheets">
-      ${buildAdminTimesheetsHTML()}
-    </div>
-
-    <div class="panel" id="adminEmployees">
-      ${buildAdminEmployeesHTML()}
-    </div>
-  `;
-  syncTabs();
-}
-
-function buildAdminRequestsHTML(){
-  const requests = getRequests().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-  let rows='';
-  if(requests.length===0)rows=`<div style="padding:28px;text-align:center;color:var(--muted);font-style:italic;">No task requests found.</div>`;
-  requests.forEach(r=>{
-    const totalH = DAY_KEYS.reduce((s,d)=>s+(r.hours[d]||0),0);
-    const hoursDetail = DAY_KEYS.map((d,i)=>r.hours[d]?`${DAYS[i]}:${r.hours[d]}h`:'').filter(Boolean).join(', ');
-    rows+=`<div class="request-row">
-      <div class="request-info">
-        <div class="request-name">${r.employeeName}</div>
-        <div class="request-detail">${r.taskName} &nbsp;·&nbsp; ${r.projectName} &nbsp;·&nbsp; ${r.timeType} &nbsp;·&nbsp; Week: ${formatDate(new Date(r.weekStart))}</div>
-        <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${hoursDetail} &nbsp;·&nbsp; Total: ${totalH}h</div>
-        ${r.rejectReason?`<div style="font-size:.72rem;color:var(--red);">Rejected: ${r.rejectReason}</div>`:''}
-      </div>
-      <div class="request-actions">
-        <span class="badge ${r.status}">${r.status}</span>
-        ${r.status==='pending'?`<button class="btn btn-success btn-sm" onclick="approveRequest('${r.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRejectModal('${r.id}')">Reject</button>`:''}
-      </div>
+      <div class="card"><div class="card-head"><span class="card-title">Pending Task Requests</span><button class="btn btn-success btn-sm" onclick="appAll()">Approve All Pending</button></div><div>${prH}</div></div>
+      <div class="card"><div class="card-head"><span class="card-title">Timesheets Sent for Approval</span><button class="btn btn-primary btn-sm" onclick="dlAll()">&#8595; Download All CSV</button></div><div>${stH}</div></div>
     </div>`;
-  });
-  return `<div class="card">
-    <div class="card-header"><div class="card-title">All Task Requests</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-success btn-sm" onclick="approveAllPending()">Approve All Pending</button>
-      </div>
-    </div>
-    <div>${rows}</div>
-  </div>`;
+  } else if(v==='rq'){
+    const sorted=reqs.slice().sort((a,b)=>new Date(b.ca||0)-new Date(a.ca||0));
+    let rows=sorted.length===0?`<div class="empty">No requests.</div>`:'';
+    sorted.forEach(r=>{const th=DK.reduce((s,d)=>s+(r.hrs[d]||0),0);const hs=DK.map((d,i)=>r.hrs[d]?DAYS[i]+':'+r.hrs[d]+'h':'').filter(Boolean).join(', ');rows+=`<div class="req-row"><div class="req-info"><div class="req-name">${r.empName}</div><div class="req-detail">${r.task} &middot; ${r.proj} &middot; ${r.ttype} &middot; ${r.wk}</div><div style="font-size:.68rem;color:var(--muted);">${hs} — Total: ${th}h</div>${r.rr?`<div style="font-size:.68rem;color:var(--red);">Rejected: ${r.rr}</div>`:''}</div><div class="req-actions"><span class="badge ${r.status}">${r.status}</span>${r.status==='pending'?`<button class="btn btn-success btn-sm" onclick="appR('${r.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${r.id}','req')">Reject</button>`:''}</div></div>`;});
+    document.getElementById('mainArea').innerHTML=`<div class="panel-area"><div class="card"><div class="card-head"><span class="card-title">All Task Requests</span><button class="btn btn-success btn-sm" onclick="appAll()">Approve All Pending</button></div><div>${rows}</div></div></div>`;
+  } else if(v==='ts'){
+    const sorted=tl.slice().sort((a,b)=>new Date(b.sentAt||0)-new Date(a.sentAt||0));
+    let rows=sorted.length===0?`<div class="empty">No timesheets sent yet.</div>`:'';
+    sorted.forEach(t=>{rows+=`<div class="req-row"><div class="req-info"><div class="req-name">${t.empName}</div><div class="req-detail">Period: ${t.wkLabel} &middot; Total: ${t.th}h${t.sentAt?` &middot; Sent: ${new Date(t.sentAt).toLocaleDateString()}`:''}${t.approvedAt?` &middot; Approved: ${new Date(t.approvedAt).toLocaleDateString()}`:''}</div></div><div class="req-actions"><span class="badge ${t.status}">${t.status}</span>${t.status==='sent'?`<button class="btn btn-success btn-sm" onclick="appT('${t.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${t.id}','ts')">Reject</button>`:''}<button class="btn btn-outline btn-sm" onclick="dlOne('${t.emp}','${t.wk}')">&#8595; CSV</button></div></div>`;});
+    document.getElementById('mainArea').innerHTML=`<div class="panel-area"><div class="card"><div class="card-head"><span class="card-title">All Sent Timesheets</span><button class="btn btn-primary btn-sm" onclick="dlAll()">&#8595; Download All (CSV)</button></div><div>${rows}</div></div></div>`;
+  } else if(v==='em'){
+    const el=Object.entries(USERS).filter(([,u])=>u.role==='employee');
+    const clrs=['#e8f0fb','#e6f4ed','#fde8eb','#fff8e1','#f0f4fa','#fce8f0'];
+    const tclrs=['#1a56a0','#1a7f4b','#c8102e','#8a6000','#5a6a85','#9c1060'];
+    let cards='';
+    el.forEach(([un,ud],i)=>{const ini=ud.name.split(',').map(p=>p.trim()[0]||'').join('').toUpperCase().slice(0,2);const ci=i%6;const ur=reqs.filter(r=>r.emp===un);const ut=tl.filter(t=>t.emp===un);cards+=`<div class="card"><div style="padding:11px 13px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;"><div style="width:34px;height:34px;border-radius:50%;background:${clrs[ci]};color:${tclrs[ci]};display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.72rem;flex-shrink:0;">${ini}</div><div style="flex:1;min-width:150px;"><div style="font-weight:600;font-size:.82rem;">${ud.name}</div><div style="font-size:.7rem;color:var(--muted);">${ud.email}</div><div style="font-size:.66rem;color:var(--muted);">Username: <code>${un}</code> &nbsp;|&nbsp; PIN: <code>${ud.pass}</code></div></div><div style="display:flex;gap:14px;"><div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;">Requests</div><div style="font-weight:600;font-size:1.1rem;">${ur.length}</div></div><div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;">Pending</div><div style="font-weight:600;font-size:1.1rem;color:var(--amber);">${ur.filter(r=>r.status==='pending').length}</div></div><div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;">Approved TS</div><div style="font-weight:600;font-size:1.1rem;color:var(--green);">${ut.filter(t=>t.status==='approved').length}</div></div></div></div></div>`;});
+    document.getElementById('mainArea').innerHTML=`<div class="panel-area">${cards}</div>`;
+  }
 }
-
-function buildAdminTimesheetsHTML(){
-  const timesheets = getTimesheets().sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0));
-  let rows='';
-  if(timesheets.length===0)rows=`<div style="padding:28px;text-align:center;color:var(--muted);font-style:italic;">No timesheets submitted yet.</div>`;
-  timesheets.forEach(t=>{
-    const empReqs = getRequests().filter(r=>r.employeeUser===t.employeeUser&&r.status==='approved'&&weekKeyFromDate(r.weekStart)===t.weekKey);
-    const totalH = empReqs.reduce((s,r)=>s+DAY_KEYS.reduce((ss,d)=>ss+(r.hours[d]||0),0),0);
-    rows+=`<div class="request-row">
-      <div class="request-info">
-        <div class="request-name">${t.employeeName}</div>
-        <div class="request-detail">Week: ${t.weekLabel} &nbsp;·&nbsp; Tasks: ${empReqs.length} &nbsp;·&nbsp; Total: ${totalH}h
-          ${t.submittedAt?`&nbsp;·&nbsp; Submitted: ${new Date(t.submittedAt).toLocaleDateString()}`:''}
-          ${t.approvedAt?`&nbsp;·&nbsp; Approved: ${new Date(t.approvedAt).toLocaleDateString()}`:''}
-        </div>
-      </div>
-      <div class="request-actions">
-        <span class="badge ${t.status}">${t.status}</span>
-        ${t.status==='submitted'?`<button class="btn btn-success btn-sm" onclick="approveTimesheet('${t.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRejectModal('${t.id}','ts')">Reject</button>`:''}
-        <button class="btn btn-outline btn-sm" onclick="downloadSingleTimesheet('${t.employeeUser}','${t.weekKey}')">⬇ CSV</button>
-      </div>
-    </div>`;
-  });
-  return `<div class="card">
-    <div class="card-header">
-      <div class="card-title">All Submitted Timesheets</div>
-      <button class="btn btn-primary btn-sm" onclick="downloadAllTimesheets()">⬇ Download All (CSV)</button>
-    </div>
-    <div>${rows}</div>
-  </div>`;
-}
-
-function buildAdminEmployeesHTML(){
-  const empUsers = Object.entries(USERS).filter(([,v])=>v.role==='employee');
-  const requests = getRequests();
-  const timesheets = getTimesheets();
-  let cards='';
-  empUsers.forEach(([uname,udata])=>{
-    const initials = udata.name.split(',').map(p=>p.trim()[0]||'').join('').toUpperCase().slice(0,2);
-    const userReqs = requests.filter(r=>r.employeeUser===uname);
-    const userTs = timesheets.filter(t=>t.employeeUser===uname);
-    const colors=['#e8f0fb','#e6f4ed','#fde8eb','#fff8e1','#f0f4fa'];
-    const textColors=['#1a56a0','#1a7f4b','#c8102e','#b07800','#5a6a85'];
-    const ci=Math.abs(uname.charCodeAt(0))%5;
-    cards+=`<div class="card" style="margin-bottom:12px;">
-      <div class="card-body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-        <div class="emp-avatar" style="background:${colors[ci]};color:${textColors[ci]};">${initials}</div>
-        <div style="flex:1;min-width:180px;">
-          <div style="font-weight:600;font-size:.88rem;">${udata.name}</div>
-          <div style="font-size:.75rem;color:var(--muted);">${udata.email}</div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">Username: <code style="font-family:'IBM Plex Mono',monospace;">${uname}</code></div>
-        </div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap;">
-          <div><div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Requests</div><div style="font-weight:600;font-size:1.1rem;color:var(--navy);">${userReqs.length}</div></div>
-          <div><div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Pending</div><div style="font-weight:600;font-size:1.1rem;color:var(--amber);">${userReqs.filter(r=>r.status==='pending').length}</div></div>
-          <div><div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Timesheets</div><div style="font-weight:600;font-size:1.1rem;color:var(--green);">${userTs.filter(t=>t.status==='approved').length}</div></div>
-        </div>
-      </div>
-    </div>`;
-  });
-  return `<div>${cards}</div>`;
-}
-
-// ══════════════════════════════════════════════════════════
-// ADMIN ACTIONS
-// ══════════════════════════════════════════════════════════
-function approveRequest(id){
-  const requests = getRequests();
-  const idx = requests.findIndex(r=>r.id===id);
-  if(idx>-1){requests[idx].status='approved';requests[idx].approvedAt=new Date().toISOString();requests[idx].approvedBy=currentUser.name;}
-  saveRequests(requests);
-  showToast('Task request approved!');
-  renderAdminDashboard();
-}
-
-function approveAllPending(){
-  const requests = getRequests();
-  let count=0;
-  requests.forEach(r=>{if(r.status==='pending'){r.status='approved';r.approvedAt=new Date().toISOString();r.approvedBy=currentUser.name;count++;}});
-  saveRequests(requests);
-  showToast(`${count} request(s) approved!`);
-  renderAdminDashboard();
-}
-
-let rejectingType='req';
-function openRejectModal(id,type='req'){
-  rejectingId=id;rejectingType=type;
-  document.getElementById('rejectReason').value='';
-  document.getElementById('rejectModal').classList.add('open');
-}
+function appR(id){const r=getR();const i=r.findIndex(x=>x.id===id);if(i>-1){r[i].status='approved';r[i].approvedAt=new Date().toISOString();r[i].approvedBy=CU.name;}setR(r);showToast('Approved!');adminView(CV);}
+function appAll(){const r=getR();let n=0;r.forEach(x=>{if(x.status==='pending'){x.status='approved';x.approvedAt=new Date().toISOString();x.approvedBy=CU.name;n++;}});setR(r);showToast(n+' approved!');adminView(CV);}
+function appT(id){const tl=getT();const i=tl.findIndex(t=>t.id===id);if(i>-1){tl[i].status='approved';tl[i].approvedAt=new Date().toISOString();tl[i].approvedBy=CU.name;}setT(tl);showToast('Timesheet approved!');adminView(CV);}
+function openRJ(id,type){RJID=id;RJTYPE=type;document.getElementById('rejectReason').value='';document.getElementById('rejectModal').classList.add('open');}
 function confirmReject(){
   const reason=document.getElementById('rejectReason').value.trim();
-  if(rejectingType==='ts'){
-    const ts=getTimesheets();const idx=ts.findIndex(t=>t.id===rejectingId);
-    if(idx>-1){ts[idx].status='rejected';ts[idx].rejectReason=reason;}
-    saveTimesheets(ts);
-  } else {
-    const reqs=getRequests();const idx=reqs.findIndex(r=>r.id===rejectingId);
-    if(idx>-1){reqs[idx].status='rejected';reqs[idx].rejectReason=reason;}
-    saveRequests(reqs);
-  }
-  closeModal('rejectModal');showToast('Rejected.');renderAdminDashboard();
+  if(RJTYPE==='ts'){const tl=getT();const i=tl.findIndex(t=>t.id===RJID);if(i>-1){tl[i].status='rejected';tl[i].rr=reason;}setT(tl);}
+  else{const r=getR();const i=r.findIndex(x=>x.id===RJID);if(i>-1){r[i].status='rejected';r[i].rr=reason;}setR(r);}
+  closeModal('rejectModal');showToast('Rejected.');adminView(CV);
 }
-
-function approveTimesheet(id){
-  const ts=getTimesheets();const idx=ts.findIndex(t=>t.id===id);
-  if(idx>-1){ts[idx].status='approved';ts[idx].approvedAt=new Date().toISOString();ts[idx].approvedBy=currentUser.name;}
-  saveTimesheets(ts);showToast('Timesheet approved!');renderAdminDashboard();
+function dlOne(empUser,weekFri){
+  const emp=Object.entries(USERS).find(([u])=>u===empUser);
+  const en=emp?emp[1].name:empUser,ee=emp?emp[1].email:'';
+  const fri=new Date(weekFri);
+  const reqs=getR().filter(r=>r.emp===empUser&&r.status==='approved'&&r.wk===weekFri);
+  const dh=DK.map((_,i)=>{const d=new Date(fri);d.setDate(fri.getDate()+i);return '"'+DAYS[i]+' '+fs(d)+'"';}).join(',');
+  let csv='"Employee","Email","Task_Name","Project","Time_Type",'+dh+',"Total"\n';
+  const dt=DK.map(()=>0);
+  reqs.forEach(r=>{const row=[en,ee,r.task,r.proj,r.ttype,...DK.map((d,i)=>{const h=r.hrs[d]||0;dt[i]+=h;return h;}),DK.reduce((s,d)=>s+(r.hrs[d]||0),0)];csv+=row.map(v=>'"'+v+'"').join(',')+'\n';});
+  csv+='"","","","","Total work",'+dt.map(h=>'"'+h+'"').join(',')+',"'+dt.reduce((s,h)=>s+h,0)+'"\n';
+  dlCSV(csv,'timesheet_'+empUser+'_'+weekFri+'.csv');showToast('CSV downloaded!');
 }
-
-// ══════════════════════════════════════════════════════════
-// CSV DOWNLOAD
-// ══════════════════════════════════════════════════════════
-function downloadSingleTimesheet(empUser, wkKey){
-  const emp = Object.entries(USERS).find(([u])=>u===empUser);
-  const empName = emp?emp[1].name:empUser;
-  const requests = getRequests().filter(r=>r.employeeUser===empUser&&r.status==='approved'&&weekKeyFromDate(r.weekStart)===wkKey);
-
-  const wkStart = new Date(wkKey);
-  const dates = DAY_KEYS.map((_,i)=>{const d=new Date(wkStart);d.setDate(wkStart.getDate()+i);return d;});
-  const dayHeaders = dates.map((d,i)=>`"${DAYS[i]} ${d.getMonth()+1}/${d.getDate()}"`).join(',');
-
-  let csv=`"Employee","Project Name","Task Name","Time Type",${dayHeaders},"Total"\n`;
-  let dayTotals = DAY_KEYS.map(()=>0);
-  requests.forEach(r=>{
-    const row = [empName,r.projectName,r.taskName,r.timeType,...DAY_KEYS.map((d,i)=>{const h=r.hours[d]||0;dayTotals[i]+=h;return h;}),DAY_KEYS.reduce((s,d)=>s+(r.hours[d]||0),0)];
-    csv+=row.map(v=>`"${v}"`).join(',')+'\n';
+function dlAll(){
+  const tl=getT();if(tl.length===0){showToast('No timesheets yet.');return;}
+  let csv='"Employee","Email","Period","Task_Name","Project","Time_Type","Fri","Sat","Sun","Mon","Tue","Wed","Thu","Total Hours","Status"\n';
+  tl.forEach(t=>{
+    const emp=Object.entries(USERS).find(([u])=>u===t.emp);
+    const ee=emp?emp[1].email:'';
+    const reqs=getR().filter(r=>r.emp===t.emp&&r.status==='approved'&&r.wk===t.wk);
+    if(reqs.length===0){csv+='"'+t.empName+'","'+ee+'","'+t.wkLabel+'","(no approved tasks)","","",0,0,0,0,0,0,0,0,"'+t.status+'"\n';}
+    else{reqs.forEach(r=>{const row=[t.empName,ee,t.wkLabel,r.task,r.proj,r.ttype,...DK.map(d=>r.hrs[d]||0),DK.reduce((s,d)=>s+(r.hrs[d]||0),0),t.status];csv+=row.map(v=>'"'+v+'"').join(',')+'\n';});}
   });
-  csv+=`"","","","Total work",${dayTotals.map(h=>`"${h}"`).join(',')},"${dayTotals.reduce((s,h)=>s+h,0)}"\n`;
-
-  downloadCSV(csv, `timesheet_${empUser}_${wkKey}.csv`);
+  dlCSV(csv,'all_timesheets_'+new Date().toISOString().split('T')[0]+'.csv');showToast('All timesheets downloaded!');
 }
-
-function downloadAllTimesheets(){
-  const timesheets = getTimesheets();
-  if(timesheets.length===0){showToast('No timesheets to download.');return;}
-
-  let csv=`"Employee","Email","Week","Project Name","Task Name","Time Type","Mon","Tue","Wed","Thu","Fri","Sat","Sun","Total Hours","Timesheet Status"\n`;
-
-  timesheets.forEach(t=>{
-    const emp = Object.entries(USERS).find(([u])=>u===t.employeeUser);
-    const empEmail = emp?emp[1].email:'';
-    const requests = getRequests().filter(r=>r.employeeUser===t.employeeUser&&r.status==='approved'&&weekKeyFromDate(r.weekStart)===t.weekKey);
-    if(requests.length===0){
-      csv+=`"${t.employeeName}","${empEmail}","${t.weekLabel}","","(No approved tasks)","",0,0,0,0,0,0,0,0,"${t.status}"\n`;
-    } else {
-      requests.forEach(r=>{
-        const row=[t.employeeName,empEmail,t.weekLabel,r.projectName,r.taskName,r.timeType,...DAY_KEYS.map(d=>r.hours[d]||0),DAY_KEYS.reduce((s,d)=>s+(r.hours[d]||0),0),t.status];
-        csv+=row.map(v=>`"${v}"`).join(',')+'\n';
-      });
-    }
-  });
-
-  downloadCSV(csv, `all_timesheets_${new Date().toISOString().split('T')[0]}.csv`);
-  showToast('Compiled timesheet downloaded!');
-}
-
-function downloadCSV(content, filename){
-  const blob = new Blob([content],{type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-}
-
-// ══════════════════════════════════════════════════════════
-// TABS & MODALS
-// ══════════════════════════════════════════════════════════
-function switchTab(btn, panelId){
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  const panel=document.getElementById(panelId);if(panel)panel.classList.add('active');
-}
-function switchTabByName(panelId){
-  const tabs=document.querySelectorAll('.nav-tab');
-  const panels=['adminDashboard','adminRequests','adminTimesheets','adminEmployees'];
-  const idx=panels.indexOf(panelId);
-  if(idx>-1&&tabs[idx])switchTab(tabs[idx],panelId);
-}
-function syncTabs(){
-  const activeTab=document.querySelector('.nav-tab.active');
-  if(activeTab)activeTab.click();
-}
+function dlCSV(c,fn){const b=new Blob([c],{type:'text/csv;charset=utf-8;'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
-
-// ══════════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════════
-let toastTimer;
-function showToast(msg,color){
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.style.background=color||'var(--navy)';
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
-}
-
-// Allow enter key on auth
+let tt;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3000);}
 document.getElementById('authUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('authPass').focus();});
 </script>
 </body>
