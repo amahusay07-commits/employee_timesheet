@@ -238,112 +238,22 @@ const USERS={
 };
 
 // ── GITHUB GIST DATABASE ─────────────────────────────────────────
-// ── GOOGLE APPS SCRIPT DATABASE ─────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJhj3IZ684V_Ec8EoHbrmwHMfnmUniMMEIIlQVuEoDLrGqMkj2xjd7ArtzxNy67_h6A/exec';
+// ── LOCAL STORAGE DATABASE ───────────────────────────────────────
+const G = (k,d) => { try{ return JSON.parse(localStorage.getItem(k))||d; }catch{ return d; } };
+const S = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
-let _db = { requests: [], timesheets: [] };
-function getR(){ return _db.requests   || []; }
-function getT(){ return _db.timesheets || []; }
-function setR(v){ _db.requests   = v; }
-function setT(v){ _db.timesheets = v; }
+function getR(){ return G('ts_r',[]); }
+function getT(){ return G('ts_t',[]); }
+function setR(v){ S('ts_r',v); }
+function setT(v){ S('ts_t',v); }
 
-// READ — using JSONP via <script> tag to bypass CORS
-function loadFromGist(){
-  return new Promise((resolve) => {
-    showLoader('Loading data...');
-    const cbName = '__gasLoad_' + Date.now();
-    const timer  = setTimeout(() => {
-      cleanup();
-      console.warn('Load timed out, using empty data');
-      _db = {requests:[], timesheets:[]};
-      hideLoader();
-      resolve();
-    }, 12000);
+function loadFromGist(){ return Promise.resolve(); }
+async function saveToGist(){}
+async function persistR(reqs){ setR(reqs); }
+async function persistT(tls){  setT(tls);  }
 
-    window[cbName] = function(resp){
-      cleanup();
-      if(resp && resp.ok && resp.data){
-        _db.requests   = Array.isArray(resp.data.requests)   ? resp.data.requests   : [];
-        _db.timesheets = Array.isArray(resp.data.timesheets) ? resp.data.timesheets : [];
-        console.log('Loaded: '+_db.requests.length+' req, '+_db.timesheets.length+' ts');
-      } else {
-        console.warn('Bad response, using empty data');
-        _db = {requests:[], timesheets:[]};
-      }
-      hideLoader();
-      resolve();
-    };
-
-    function cleanup(){
-      clearTimeout(timer);
-      delete window[cbName];
-      const el = document.getElementById('_gasLoadScript');
-      if(el) el.remove();
-    }
-
-    const s  = document.createElement('script');
-    s.id     = '_gasLoadScript';
-    s.src    = GAS_URL + '?action=getAllData&cb=' + cbName;
-    s.onerror = () => {
-      cleanup();
-      _db = {requests:[], timesheets:[]};
-      hideLoader();
-      showBanner('Could not load data. Check connection.','#c8102e');
-      resolve();
-    };
-    document.head.appendChild(s);
-  });
-}
-
-// WRITE — using JSONP via <script> tag to bypass CORS
-function saveToGist(){
-  return new Promise((resolve, reject) => {
-    const cbName = '__gasSave_' + Date.now();
-    const data   = encodeURIComponent(JSON.stringify(_db));
-    const timer  = setTimeout(() => {
-      cleanup();
-      reject(new Error('Save timed out'));
-    }, 15000);
-
-    window[cbName] = function(resp){
-      cleanup();
-      if(resp && resp.ok){ console.log('Saved ✅'); resolve(); }
-      else reject(new Error((resp && resp.error) || 'Save failed'));
-    };
-
-    function cleanup(){
-      clearTimeout(timer);
-      delete window[cbName];
-      const el = document.getElementById('_gasSaveScript');
-      if(el) el.remove();
-    }
-
-    const s  = document.createElement('script');
-    s.id     = '_gasSaveScript';
-    s.src    = GAS_URL + '?action=syncAll&cb=' + cbName + '&data=' + data;
-    s.onerror = () => {
-      cleanup();
-      reject(new Error('Save script failed'));
-    };
-    document.head.appendChild(s);
-  });
-}
-
-async function persistR(reqs){ setR(reqs); await saveToGist(); }
-async function persistT(tls){  setT(tls);  await saveToGist(); }
-
-function showLoader(msg){
-  let el=document.getElementById('gloader');
-  if(!el){
-    el=document.createElement('div');el.id='gloader';
-    el.style.cssText='position:fixed;inset:0;background:rgba(15,31,61,.6);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:inherit;backdrop-filter:blur(2px);';
-    el.innerHTML='<div style="font-size:2.2rem;margin-bottom:12px;animation:spin 1s linear infinite;">⏳</div><div id="gloaderMsg" style="font-size:.88rem;font-weight:500;"></div>';
-    document.body.appendChild(el);
-  }
-  document.getElementById('gloaderMsg').textContent = msg||'Loading...';
-  el.style.display = 'flex';
-}
-function hideLoader(){const el=document.getElementById('gloader');if(el)el.style.display='none';}
+function showLoader(){}
+function hideLoader(){}
 function showBanner(msg,color){
   color=color||'#1a56a0';
   let el=document.getElementById('sysBanner');
@@ -389,7 +299,9 @@ function doLogin(){
   CU={...USERS[u],username:u};
   document.getElementById('authScreen').style.display='none';
   document.getElementById('appScreen').classList.add('show');
-  loadFromGist().then(()=>initApp()).catch(()=>initApp());
+  loadFromGist()
+    .then(()=>{ console.log('Gist loaded, init app'); initApp(); })
+    .catch((e)=>{ console.error('Load failed, init anyway:',e); initApp(); });
 }
 function doLogout(){
   CU=null;WO=0;CV='ts';
@@ -622,9 +534,9 @@ function adminView(v){
     </div>`;
   } else if(v==='rq'){
     const sorted=reqs.slice().sort((a,b)=>new Date(b.ca||0)-new Date(a.ca||0));
-    let rows=sorted.length===0?`<div class="empty">No requests.</div>`:'';
-    sorted.forEach(r=>{const th=DK.reduce((s,d)=>s+(r.hrs[d]||0),0);const hs=DK.map((d,i)=>r.hrs[d]?DAYS[i]+':'+r.hrs[d]+'h':'').filter(Boolean).join(', ');rows+=`<div class="req-row"><div class="req-info"><div class="req-name">${r.empName}</div><div class="req-detail">${r.task} &middot; ${r.proj} &middot; ${r.ttype} &middot; ${r.wk}</div><div style="font-size:.68rem;color:var(--muted);">${hs} — Total: ${th}h</div>${r.rr?`<div style="font-size:.68rem;color:var(--red);">Rejected: ${r.rr}</div>`:''}</div><div class="req-actions"><span class="badge ${r.status}">${r.status}</span>${r.status==='pending'?`<button class="btn btn-success btn-sm" onclick="appR('${r.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${r.id}','req')">Reject</button>`:''}</div></div>`;});
-    document.getElementById('mainArea').innerHTML=`<div class="panel-area"><div class="card"><div class="card-head"><span class="card-title">All Task Requests</span><button class="btn btn-success btn-sm" onclick="appAll()">Approve All Pending</button></div><div>${rows}</div></div></div>`;
+    let rows=sorted.length===0?`<div class="empty">No requests yet. Use the button above to add tasks for employees.</div>`:'';
+    sorted.forEach(r=>{const th=DK.reduce((s,d)=>s+(r.hrs[d]||0),0);const hs=DK.map((d,i)=>r.hrs[d]?DAYS[i]+':'+r.hrs[d]+'h':'').filter(Boolean).join(', ');rows+=`<div class="req-row"><div class="req-info"><div class="req-name">${r.empName}</div><div class="req-detail">${r.task} &middot; ${r.proj} &middot; ${r.ttype} &middot; ${r.wk}</div><div style="font-size:.68rem;color:var(--muted);">${r.wk} — Total: ${th}h</div>${r.rr?`<div style="font-size:.68rem;color:var(--red);">Rejected: ${r.rr}</div>`:''}</div><div class="req-actions"><span class="badge ${r.status}">${r.status}</span>${r.status==='pending'?`<button class="btn btn-success btn-sm" onclick="appR('${r.id}')">Approve</button><button class="btn btn-danger btn-sm" onclick="openRJ('${r.id}','req')">Reject</button>`:''}<button class="btn btn-danger btn-sm" onclick="adminDelReq('${r.id}')">Delete</button></div></div>`;});
+    document.getElementById('mainArea').innerHTML=`<div class="panel-area"><div class="card"><div class="card-head"><span class="card-title">All Task Requests</span><div style="display:flex;gap:6px;"><button class="btn btn-primary btn-sm" onclick="openAdminAddTask()">+ Add Task for Employee</button><button class="btn btn-success btn-sm" onclick="appAll()">Approve All Pending</button></div></div><div>${rows}</div></div></div>`;
   } else if(v==='ts'){
     const sorted=tl.slice().sort((a,b)=>new Date(b.sentAt||0)-new Date(a.sentAt||0));
     let rows=sorted.length===0?`<div class="empty">No timesheets sent yet.</div>`:'';
@@ -989,6 +901,99 @@ document.getElementById('authUser').addEventListener('keydown',e=>{if(e.key==='E
 
 
 
+
+
+// ── ADMIN: Add task directly for an employee ─────────────────────
+function openAdminAddTask(){
+  // Build employee dropdown
+  const empList = Object.entries(USERS).filter(([,u])=>u.role==='employee');
+  const opts = empList.map(([un,ud])=>`<option value="${un}">${ud.name}</option>`).join('');
+
+  // Create modal dynamically
+  let modal = document.getElementById('adminAddTaskModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'adminAddTaskModal';
+    modal.className = 'modal-bg';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `<div class="modal">
+    <h3>Add Task for Employee</h3>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:span 2;">
+        <label class="form-label">Employee</label>
+        <select class="form-ctrl" id="aEmp">${opts}</select>
+      </div>
+      <div class="form-group" style="grid-column:span 2;">
+        <label class="form-label">Task Name / Description</label>
+        <input class="form-ctrl" id="aTask" type="text" placeholder="e.g. FWDAir_Core HR_Integration">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Project Name</label>
+        <input class="form-ctrl" id="aProj" type="text" placeholder="e.g. FY26_HCM_Forward">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Time Type</label>
+        <select class="form-ctrl" id="aTtype"><option>Actual</option><option>Overtime</option><option>Leave</option></select>
+      </div>
+      <div class="form-group" style="grid-column:span 2;">
+        <label class="form-label">Week Start (Friday)</label>
+        <input class="form-ctrl" id="aWk" type="date" value="${iso(getFri(0))}">
+      </div>
+    </div>
+    <div id="aErr" style="color:var(--red);font-size:.72rem;min-height:14px;margin-top:6px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="document.getElementById('adminAddTaskModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="adminSaveTask()">Add & Approve Task</button>
+    </div>
+  </div>`;
+  modal.classList.add('open');
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+}
+
+function adminSaveTask(){
+  const empUser = document.getElementById('aEmp').value;
+  const task    = document.getElementById('aTask').value.trim();
+  const proj    = document.getElementById('aProj').value.trim();
+  const ttype   = document.getElementById('aTtype').value;
+  const wkv     = document.getElementById('aWk').value;
+  const errEl   = document.getElementById('aErr');
+
+  if(!task){ errEl.textContent='Task name required.'; return; }
+  if(!proj){ errEl.textContent='Project name required.'; return; }
+  if(!wkv){  errEl.textContent='Week required.'; return; }
+
+  // Normalize to Friday
+  const wkDate = new Date(wkv+'T12:00:00');
+  const normWk = iso(wkDate);
+
+  const empData = USERS[empUser];
+  const reqs = getR();
+  const newReq = {
+    id: 'r'+Date.now(),
+    emp: empUser,
+    empName: empData ? empData.name : empUser,
+    task, proj, ttype,
+    wk: normWk,
+    hrs: {fri:0,sat:0,sun:0,mon:0,tue:0,wed:0,thu:0},
+    status: 'approved',
+    approvedAt: new Date().toISOString(),
+    approvedBy: CU.name,
+    ca: new Date().toISOString()
+  };
+  reqs.push(newReq);
+  setR(reqs);
+  document.getElementById('adminAddTaskModal').classList.remove('open');
+  showToast('Task added & approved for '+newReq.empName+' ✅');
+  adminView(CV);
+}
+
+function adminDelReq(id){
+  if(!confirm('Delete this task request?')) return;
+  setR(getR().filter(r=>r.id!==id));
+  showToast('Deleted.');
+  adminView(CV);
+}
 
 </script>
 </body>
