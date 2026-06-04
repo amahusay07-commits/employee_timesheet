@@ -251,25 +251,77 @@ function setT(v){ _db.timesheets = v; }
 async function loadFromGist(){
   showLoader('Loading data...');
   try{
-    const res  = await fetch(GIST_API+'?t='+Date.now(),{
-      headers:{'Authorization':'token '+GIST_TOKEN,'Accept':'application/vnd.github.v3+json'}
+    const token = GIST_TOKEN;
+    const res = await fetch(GIST_API+'?t='+Date.now(),{
+      headers:{
+        'Authorization':'token '+token,
+        'Accept':'application/vnd.github.v3+json',
+        'Cache-Control':'no-cache'
+      }
     });
+    if(!res.ok){
+      const txt = await res.text();
+      console.error('Gist fetch failed:',res.status,txt);
+      showToast('Data load failed ('+res.status+'). Using local session.');
+      _db={requests:[],timesheets:[]};
+      hideLoader();
+      return;
+    }
     const json = await res.json();
+    if(!json.files || !json.files[GIST_FILE]){
+      console.error('Gist file not found. Files:',Object.keys(json.files||{}));
+      _db={requests:[],timesheets:[]};
+      hideLoader();
+      return;
+    }
     const raw  = json.files[GIST_FILE].content;
     const data = JSON.parse(raw);
-    _db.requests   = data.requests   || [];
-    _db.timesheets = data.timesheets || [];
-  }catch(e){ showToast('Load error: '+e.message); _db={requests:[],timesheets:[]}; }
-  finally{ hideLoader(); }
+    _db.requests   = Array.isArray(data.requests)   ? data.requests   : [];
+    _db.timesheets = Array.isArray(data.timesheets) ? data.timesheets : [];
+    console.log('Loaded from Gist: '+_db.requests.length+' requests, '+_db.timesheets.length+' timesheets');
+  }catch(e){
+    console.error('Gist error:',e);
+    // Show visible banner instead of just a toast
+    _db={requests:[],timesheets:[]};
+    hideLoader();
+    showBanner('⚠️ Could not connect to database. Error: '+e.message+'. You are in local mode — data will not be shared.','#c8102e');
+  }finally{
+    hideLoader();
+  }
+}
+
+function showBanner(msg, color){
+  color = color||'#1a56a0';
+  let el = document.getElementById('sysBanner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'sysBanner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9997;padding:10px 16px;font-size:.8rem;font-weight:600;color:#fff;text-align:center;cursor:pointer;';
+    el.onclick = ()=>el.remove();
+    document.body.appendChild(el);
+  }
+  el.style.background = color;
+  el.textContent = msg + ' (click to dismiss)';
 }
 
 async function saveToGist(){
+  const token = GIST_TOKEN;
   const body = JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(_db,null,2)}}});
-  await fetch(GIST_API,{
+  const res = await fetch(GIST_API,{
     method:'PATCH',
-    headers:{'Authorization':'token '+GIST_TOKEN,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+    headers:{
+      'Authorization':'token '+token,
+      'Accept':'application/vnd.github.v3+json',
+      'Content-Type':'application/json'
+    },
     body
   });
+  if(!res.ok){
+    const txt = await res.text();
+    console.error('Gist save failed:',res.status,txt);
+    throw new Error('Save failed: '+res.status);
+  }
+  console.log('Saved to Gist OK');
 }
 
 async function persistR(reqs){ setR(reqs); await saveToGist(); }
@@ -437,7 +489,9 @@ function doLogin(){
   CU={...USERS[u],username:u};
   document.getElementById('authScreen').style.display='none';
   document.getElementById('appScreen').classList.add('show');
-  loadFromGist().then(()=>initApp()).catch(()=>initApp());
+  loadFromGist()
+    .then(()=>{ console.log('Gist loaded, init app'); initApp(); })
+    .catch((e)=>{ console.error('Load failed, init anyway:',e); initApp(); });
 }
 function doLogout(){
   CU=null;WO=0;CV='ts';
@@ -1030,6 +1084,36 @@ document.getElementById('authUser').addEventListener('keydown',e=>{if(e.key==='E
   draw();
 })();
 
+
+
+// ── DEBUG: test Gist connection manually ─────────────────────────
+async function testGist(){
+  showBanner('Testing Gist connection...','#1a56a0');
+  try{
+    const token = GIST_TOKEN;
+    console.log('Token length:',token.length,'First 6:',token.substring(0,6));
+    const res = await fetch(GIST_API+'?t='+Date.now(),{
+      headers:{
+        'Authorization':'token '+token,
+        'Accept':'application/vnd.github.v3+json'
+      }
+    });
+    console.log('Gist response status:',res.status);
+    const json = await res.json();
+    console.log('Gist response keys:',Object.keys(json));
+    if(json.files){
+      console.log('Files:',Object.keys(json.files));
+      showBanner('✅ Gist connected! Files: '+Object.keys(json.files).join(', '),'#1a7f4b');
+    } else if(json.message){
+      showBanner('❌ Gist error: '+json.message,'#c8102e');
+    }
+  }catch(e){
+    console.error('Test failed:',e);
+    showBanner('❌ Network error: '+e.message,'#c8102e');
+  }
+}
+// Run test automatically on load
+window.addEventListener('load',()=>setTimeout(testGist,2000));
 
 </script>
 </body>
