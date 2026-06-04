@@ -151,7 +151,7 @@ select.form-ctrl{background:#fff;}
       </div>
       <div class="ribbon-group">
         <div class="ribbon-btns">
-          <button class="rb" onclick="openTaskModal()"><span class="ri">➕</span>Add Row</button>
+          <button class="rb" onclick="openAddRow()"><span class="ri">➕</span>Add Row</button>
         </div>
         <div class="ribbon-group-label">Tasks</div>
       </div>
@@ -387,7 +387,7 @@ function renderTS(){
     rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Click <strong>Add Row</strong> in the ribbon to submit a task request.</td></tr>`;
   } else {
     reqs.forEach(r=>{
-      const isLocked=false; // Hours always editable until timesheet is sent
+      const isLocked=!!(ts && ts.status==='approved' && ts.sentAt);
       const cells=DK.map((d,i)=>{
         const h=r.hrs[d]||0;
         const wk2=(i===1||i===2);
@@ -993,6 +993,96 @@ function adminDelReq(id){
   setR(getR().filter(r=>r.id!==id));
   showToast('Deleted.');
   adminView(CV);
+}
+
+
+// ── ADD ROW: copy existing approved task to a new week ────────────
+function openAddRow(){
+  // Get all unique approved tasks for this employee (from any week)
+  const allReqs = getR().filter(r => r.emp === CU.username && r.status === 'approved');
+  if(allReqs.length === 0){
+    showToast('No approved tasks yet. Ask your admin to add tasks first.');
+    return;
+  }
+
+  // Deduplicate by task+proj+ttype
+  const seen = new Set();
+  const unique = [];
+  allReqs.forEach(r => {
+    const key = r.task+'|'+r.proj+'|'+r.ttype;
+    if(!seen.has(key)){ seen.add(key); unique.push(r); }
+  });
+
+  const opts = unique.map((r,i) =>
+    `<option value="${i}">${r.task} — ${r.proj} (${r.ttype})</option>`
+  ).join('');
+
+  let modal = document.getElementById('addRowModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'addRowModal';
+    modal.className = 'modal-bg';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+  }
+
+  modal.innerHTML = `<div class="modal" style="max-width:420px;">
+    <h3>Add Row to Timesheet</h3>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label class="form-label">Select Task</label>
+      <select class="form-ctrl" id="arTaskSel">${opts}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Week (Friday start)</label>
+      <input class="form-ctrl" type="date" id="arWeek" value="${iso(getFri(WO))}">
+    </div>
+    <div id="arErr" style="color:var(--red);font-size:.72rem;min-height:14px;margin-top:6px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="document.getElementById('addRowModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAddRow(${JSON.stringify(unique).replace(/"/g,'&quot;')})">Add Row</button>
+    </div>
+  </div>`;
+  modal.classList.add('open');
+}
+
+function saveAddRow(unique){
+  const sel  = document.getElementById('arTaskSel');
+  const wkv  = document.getElementById('arWeek').value;
+  const errEl= document.getElementById('arErr');
+  if(!wkv){ errEl.textContent='Please select a week.'; return; }
+
+  const src  = unique[parseInt(sel.value)];
+  const wkDate = new Date(wkv+'T12:00:00');
+  const normWk = iso(wkDate);
+
+  // Check if this task already exists for this week
+  const reqs = getR();
+  const exists = reqs.find(r =>
+    r.emp===CU.username && r.task===src.task &&
+    r.proj===src.proj && normalizeFriday(r.wk)===normalizeFriday(normWk)
+  );
+  if(exists){ errEl.textContent='This task already exists for this week.'; return; }
+
+  // Add as a new approved request (copy from existing)
+  const newReq = {
+    id: 'r'+Date.now(),
+    emp: CU.username,
+    empName: CU.name,
+    task: src.task,
+    proj: src.proj,
+    ttype: src.ttype,
+    wk: normalizeFriday(normWk),
+    hrs: {fri:0,sat:0,sun:0,mon:0,tue:0,wed:0,thu:0},
+    status: 'approved',
+    approvedAt: new Date().toISOString(),
+    approvedBy: 'copied from existing task',
+    ca: new Date().toISOString()
+  };
+  reqs.push(newReq);
+  setR(reqs);
+  document.getElementById('addRowModal').classList.remove('open');
+  showToast('Row added! Enter your hours.');
+  renderTS();
 }
 
 </script>
