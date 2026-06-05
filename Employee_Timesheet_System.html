@@ -269,8 +269,14 @@ function jsonp(url){
 async function loadFromGist(){
   try {
     const res = await jsonp(GAS_URL + "?action=getAllData");
+	console.log("API RESPONSE:", res);
 
-    if (!res.ok) throw new Error(res.error);
+    
+if (!res || res.ok !== true) {
+  console.error("API Response:", res);
+  throw new Error(res?.error || "Invalid response from server");
+}
+
 
     const mappedReqs = (res.data.requests || []).map(r => ({
       ...r,
