@@ -748,7 +748,11 @@ function delReq(id){
   
 }
 function submitTask(){
-  const task=document.getElementById('fTask').value.trim(),proj=document.getElementById('fProj').value.trim(),ttype=document.getElementById('fType').value,const wkv = wk(WO);,err=document.getElementById('taskErr');
+  const task = document.getElementById('fTask').value.trim();
+  const proj = document.getElementById('fProj').value.trim();
+  const ttype = document.getElementById('fType').value;
+  const wkv = wk(WO);
+  const err = document.getElementById('taskErr');
   if(!task){err.textContent='Task name required.';return;}
   if(!proj){err.textContent='Project name required.';return;}
   if(!wkv){err.textContent='Week required.';return;}
