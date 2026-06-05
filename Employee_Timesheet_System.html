@@ -778,6 +778,10 @@ function submitTask(){
   const proj = document.getElementById('fProj').value.trim();
   const ttype = document.getElementById('fType').value;
   const wkv = wk(WO);
+  if (!wkv || wkv.includes('NaN')) {
+  err.textContent = 'Invalid week detected.';
+  return;
+}
   const err = document.getElementById('taskErr');
   if(!task){err.textContent='Task name required.';return;}
   if(!proj){err.textContent='Project name required.';return;}
@@ -789,7 +793,7 @@ function submitTask(){
     if(i>-1)reqs[i]={...reqs[i],task,proj,ttype,wk:normWk2,hrs,status:'pending',ua:new Date().toISOString()};showToast('Updated!');}
   else{// Normalize wkv to the actual Friday of that week
   const normWk = wk(WO);
-  reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:normWk,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
+  reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:wkv,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
   showLoader('Saving request...');
   persistR(reqs).then(()=>{
     hideLoader();showToast(ED?'Request updated!':'Request submitted!');
@@ -1286,7 +1290,7 @@ function adminSaveTask(){
     emp: empUser,
     empName: empData ? empData.name : empUser,
     task, proj, ttype,
-    wk: normWk,
+    wk: wkv,
     hrs: {sun:0,mon:0,tue:0,wed:0,thu:0,fri:0,sat:0},
     status: 'approved',
     approvedAt: new Date().toISOString(),
