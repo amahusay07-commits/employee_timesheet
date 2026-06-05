@@ -795,14 +795,26 @@ function submitTask(){
 }
 function saveTS(){showToast('Saved as draft.');}
 function openSendModal(){
-  const w=wk(WO),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  const w = wk(WO);
+  const reqs = getR().filter(r =>
+  r.emp === CU.username &&
+  r.status === 'approved'
+);
+
   if(reqs.length===0){showToast('No approved tasks to send.');return;}
   const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
   document.getElementById('sendMsg').textContent=`Send your timesheet for the period "${wkLabel(WO)}" to the admin? Total hours: ${th}h`;
   document.getElementById('sendModal').classList.add('open');
 }
 function confirmSend(){
-  const w=wk(WO),tl=getT(),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
+  const w = wk(WO),
+  tl = getT();
+
+  const reqs = getR().filter(r =>
+  r.emp === CU.username &&
+  r.status === 'approved'
+);
+
   const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
   const ei=tl.findIndex(t=>t.emp===CU.username&&t.wk===w);
   const en={id:'ts'+Date.now(),emp:CU.username,empName:CU.name,wk:w,wkLabel:wkLabel(WO),th,status:'sent',sentAt:new Date().toISOString()};
