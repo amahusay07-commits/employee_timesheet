@@ -151,12 +151,6 @@ select.form-ctrl{background:#fff;}
       </div>
       <div class="ribbon-group">
         <div class="ribbon-btns">
-          <button class="rb" onclick="openAddRow()"><span class="ri">➕</span>Add Row</button>
-        </div>
-        <div class="ribbon-group-label">Tasks</div>
-      </div>
-      <div class="ribbon-group">
-        <div class="ribbon-btns">
           <button class="rb" onclick="changeWeek(-1)"><span class="ri">⬅</span>Previous</button>
           <button class="rb" onclick="changeWeek(1)"><span class="ri">➡</span>Next</button>
         </div>
@@ -666,8 +660,7 @@ function renderTS(){
   const w=wk(WO),ds=getDates(WO);
   const reqs = getR().filter(r => {
   return r.emp === CU.username &&
-         r.status === 'approved' &&
-         normalizeFriday(r.wk) === normalizeFriday(w);
+         r.status === 'approved';
 });
 
   const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
