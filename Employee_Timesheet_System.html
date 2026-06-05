@@ -761,9 +761,11 @@ function changeWeek(d){WO+=d;renderTS();}
 function openTaskModal(eid){
   ED=eid||null;
   document.getElementById('tModalTitle').textContent=eid?'Edit Task Request':'Add Task Request';
-  document.getElementById('fWeek').value=iso(getFri(WO)); // sets to current week Friday
 
-  if(eid){const r=getR().find(r=>r.id===eid);if(r){document.getElementById('fTask').value=r.task;document.getElementById('fProj').value=r.proj;document.getElementById('fType').value=r.ttype;document.getElementById('fWeek').value=r.wk;;}}
+  if(eid){const r=getR().find(r=>r.id===eid);if(r){
+  document.getElementById('fTask').value=r.task;
+  document.getElementById('fProj').value=r.proj;
+  document.getElementById('fType').value=r.ttype;;}}
   else{document.getElementById('fTask').value='';document.getElementById('fProj').value='';document.getElementById('fType').value='Actual';}
   document.getElementById('taskErr').textContent='';
   document.getElementById('taskModal').classList.add('open');
