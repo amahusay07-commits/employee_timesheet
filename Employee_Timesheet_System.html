@@ -781,11 +781,12 @@ function submitTask(){
   const proj = document.getElementById('fProj').value.trim();
   const ttype = document.getElementById('fType').value;
   const wkv = wk(WO);
-  if (!wkv || wkv.includes('NaN')) {
-  err.textContent = 'Invalid week detected.';
+  const err = document.getElementById('taskErr');
+
+  if (!wkv || wkv.includes('NaN')) { 
+	err.textContent = 'Invalid week detected.'; 
   return;
 }
-  const err = document.getElementById('taskErr');
   if(!task){err.textContent='Task name required.';return;}
   if(!proj){err.textContent='Project name required.';return;}
   if(!wkv){err.textContent='Week required.';return;}
@@ -853,14 +854,6 @@ function confirmSend(){
   closeModal('sendModal');
   showToast('Timesheet submitted!');
   renderTS();
-}
-
-  const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
-  const ei=tl.findIndex(t=>t.emp===CU.username&&t.wk===w);
-  const en={id:'ts'+Date.now(),emp:CU.username,empName:CU.name,wk:w,wkLabel:wkLabel(WO),th,status:'sent',sentAt:new Date().toISOString()};
-  if(ei>-1)tl[ei]=en;else tl.push(en);
-  persistT(tl);
-  closeModal('sendModal');showToast('Timesheet sent to admin!');renderTS();
 }
 function adminView(v){
   const reqs=getR(),tl=getT();
