@@ -667,7 +667,7 @@ function renderTS(){
   const reqs = getR().filter(r => {
   return r.emp === CU.username &&
          r.status === 'approved' &&
-         r.wk === w;
+         normalizeFriday(r.wk) === normalizeFriday(w);
 });
 
   const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
