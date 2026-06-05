@@ -640,12 +640,12 @@ function sv(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classLis
 function sv2(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');if(v==='ts')renderTS();else renderMyReqs();}
 function renderTS(){
   const w=wk(WO),ds=getDates(WO);
-  const reqs=getR().filter(r=>{
-    if(r.emp!==CU.username||r.status!=='approved') return false;
-    // Use normalized Friday for comparison
-    const rNorm = normalizeFriday(r.wk);
-    return rNorm===w;
-  });
+  const reqs = getR().filter(r => {
+  return r.emp === CU.username &&
+         r.status === 'approved' &&
+         r.wk === w;
+});
+
   const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
   const dt={};DK.forEach(d=>dt[d]=0);
   reqs.forEach(r=>DK.forEach(d=>{dt[d]+=(r.hrs[d]||0);}));
@@ -771,14 +771,14 @@ function submitTask(){
 }
 function saveTS(){showToast('Saved as draft.');}
 function openSendModal(){
-  const w=wk(WO),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&normalizeFriday(r.wk)===w);
+  const w=wk(WO),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
   if(reqs.length===0){showToast('No approved tasks to send.');return;}
   const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
   document.getElementById('sendMsg').textContent=`Send your timesheet for the period "${wkLabel(WO)}" to the admin? Total hours: ${th}h`;
   document.getElementById('sendModal').classList.add('open');
 }
 function confirmSend(){
-  const w=wk(WO),tl=getT(),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&normalizeFriday(r.wk)===w);
+  const w=wk(WO),tl=getT(),reqs=getR().filter(r=>r.emp===CU.username&&r.status==='approved'&&r.wk===w);
   const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
   const ei=tl.findIndex(t=>t.emp===CU.username&&t.wk===w);
   const en={id:'ts'+Date.now(),emp:CU.username,empName:CU.name,wk:w,wkLabel:wkLabel(WO),th,status:'sent',sentAt:new Date().toISOString()};
@@ -890,7 +890,7 @@ function dlOne(empUser,weekFri){
   const emp=Object.entries(USERS).find(([u])=>u===empUser);
   const en=emp?emp[1].name:empUser,ee=emp?emp[1].email:'';
   const fri=new Date(weekFri+'T12:00:00');
-  const reqs=getR().filter(r=>r.emp===empUser&&r.status==='approved'&&normalizeFriday(r.wk)===weekFri);
+  const reqs=getR().filter(r=>r.emp===empUser&&r.status==='approved'&&r.wk===weekFri);
   const dates=DK.map((_,i)=>{const d=new Date(fri);d.setDate(fri.getDate()+i);return d;});
   const dayTotals=DK.map(()=>0);
   const totH=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
@@ -960,7 +960,7 @@ function dlAll(){
     const wfri=normalizeFriday(t.wk);
     const fri=new Date(wfri+'T12:00:00');
     const dates=DK.map((_,i)=>{const d=new Date(fri);d.setDate(fri.getDate()+i);return d;});
-    const reqs=getR().filter(r=>r.emp===t.emp&&r.status==='approved'&&normalizeFriday(r.wk)===wfri);
+    const reqs=getR().filter(r=>r.emp===t.emp&&r.status==='approved'&&r.wk===wfri);
     const dayTotals=DK.map(()=>0);
     const totH=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
     let trs='';
