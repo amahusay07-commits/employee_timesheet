@@ -532,16 +532,20 @@ function hideLoader(){
 
 let CU=null,WO=0,RJID=null,RJTYPE='req',ED=null,CV='ts';
 function getFri(o){
-  // Week starts on SUNDAY
-  const now=new Date();
-  const dy=now.getDay(); // 0=Sun,1=Mon,...,6=Sat
-  // Days since last Sunday
-  const sinceSun = dy; // dy=0 means today is Sunday
-  const d=new Date(now);
-  d.setDate(now.getDate()-sinceSun+o*7);
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri
+
+  // Calculate difference to Friday
+  let diff = 5 - day;
+  if (diff > 0) diff -= 7; // go to previous Friday
+
+  const d = new Date(now);
+  d.setDate(now.getDate() + diff + (o * 7));
   d.setHours(0,0,0,0);
+
   return d;
 }
+
 
 function getDates(o){
   const f = getFri(o); // Friday
