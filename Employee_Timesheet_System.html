@@ -681,7 +681,7 @@ function renderTS(){
   }
   let rows='';
   if(reqs.length===0){
-    rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Click <strong>Add Row</strong> in the ribbon to submit a task request.</td></tr>`;
+    rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Go to <strong>My Requests</strong> and click the <strong>Add Request</strong> button.</td></tr>`;
   } else {
     reqs.forEach(r=>{
       const isLocked=!!(ts && ts.status==='approved' && ts.sentAt && ts.sentAt!=='');
