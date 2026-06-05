@@ -186,8 +186,15 @@ select.form-ctrl{background:#fff;}
         <select class="form-ctrl" id="fType"><option>Actual</option><option>Overtime</option><option>Leave</option></select>
       </div>
       <div class="form-group" style="grid-column:span 2;">
-        <label class="form-label">Week Start (Friday)</label>
-        <input class="form-ctrl" id="fWeek" type="date">
+        <div class="form-group">
+		<label class="form-label">Start Date</label>
+		<input class="form-ctrl" id="fStartDate" type="date">
+</div>
+
+<div class="form-group">
+  <label class="form-label">End Date</label>
+  <input class="form-ctrl" id="fEndDate" type="date">
+</div>
       </div>
     </div>
 
@@ -1227,11 +1234,14 @@ function openAdminAddTask(){
         <label class="form-label">Time Type</label>
         <select class="form-ctrl" id="aTtype"><option>Actual</option><option>Overtime</option><option>Leave</option></select>
       </div>
-      <div class="form-group" style="grid-column:span 2;">
-        <label class="form-label">Week Start (Friday)</label>
-        <input class="form-ctrl" id="aWk" type="date" value="${iso(getFri(0))}">
-      </div>
-    </div>
+	  <div class="form-group">
+		<label class="form-label">Start Date</label>
+		<input class="form-ctrl" id="aStartDate" type="date">
+	  </div>
+      <div class="form-group">
+		<label class="form-label">End Date</label>
+		<input class="form-ctrl" id="aEndDate" type="date">
+	  </div>
     <div id="aErr" style="color:var(--red);font-size:.72rem;min-height:14px;margin-top:6px;"></div>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="document.getElementById('adminAddTaskModal').classList.remove('open')">Cancel</button>
@@ -1247,12 +1257,21 @@ function adminSaveTask(){
   const task    = document.getElementById('aTask').value.trim();
   const proj    = document.getElementById('aProj').value.trim();
   const ttype   = document.getElementById('aTtype').value;
-  const wkv     = document.getElementById('aWk').value;
+  const startDate = document.getElementById('aStartDate').value;
+  const endDate = document.getElementById('aEndDate').value;
   const errEl   = document.getElementById('aErr');
 
   if(!task){ errEl.textContent='Task name required.'; return; }
   if(!proj){ errEl.textContent='Project name required.'; return; }
-  if(!wkv){  errEl.textContent='Week required.'; return; }
+  if(!startDate){
+  errEl.textContent = 'Start date required.';
+  return;
+  }
+  if(!endDate){
+  errEl.textContent = 'End date required.';
+  return;
+  }
+
 
   // Normalize to Friday
   const wkDate = new Date(wkv+'T12:00:00');
