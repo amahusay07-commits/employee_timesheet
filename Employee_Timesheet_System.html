@@ -138,7 +138,7 @@ select.form-ctrl{background:#fff;}
   <div class="hdr-right">
     <span style="flex:1;font-weight:600;" id="hdrTitle">Timesheet System</span>
     <span id="hdrUser" style="color:#a0d4ff;"></span>
-    <button class="logout-btn" onclick="exportData()" style="margin-right:4px;">⬇ Export</button><button class="logout-btn" onclick="importData()" style="margin-right:4px;">⬆ Import</button><button class="logout-btn" onclick="exportData()" id="btnExport" style="display:none;margin-right:4px;">⬇ Export</button><button class="logout-btn" onclick="importData()" id="btnImport" style="display:none;margin-right:4px;">⬆ Import</button><button class="logout-btn" onclick="doLogout()">Sign Out</button>
+	<button class="logout-btn" onclick="doLogout()">Sign Out</button>
   </div>
   <div class="ribbon" id="ribbon" style="display:none;">
     <div class="ribbon-inner">
@@ -748,7 +748,7 @@ function delReq(id){
   
 }
 function submitTask(){
-  const task=document.getElementById('fTask').value.trim(),proj=document.getElementById('fProj').value.trim(),ttype=document.getElementById('fType').value,wkv=document.getElementById('fWeek').value,err=document.getElementById('taskErr');
+  const task=document.getElementById('fTask').value.trim(),proj=document.getElementById('fProj').value.trim(),ttype=document.getElementById('fType').value,const wkv = wk(WO);,err=document.getElementById('taskErr');
   if(!task){err.textContent='Task name required.';return;}
   if(!proj){err.textContent='Project name required.';return;}
   if(!wkv){err.textContent='Week required.';return;}
