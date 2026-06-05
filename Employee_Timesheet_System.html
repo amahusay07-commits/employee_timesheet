@@ -570,15 +570,22 @@ function fs(d){return (d.getMonth()+1)+'/'+d.getDate();}
 function wkLabel(o){const ds=getDates(o);return fm(ds[0])+' 12:00 AM - '+fm(ds[6])+' 11:59 PM';}
 function wkShort(o){const ds=getDates(o);return fs(ds[0])+' – '+fs(ds[6]);}
 function doLogin(){
-  const u=document.getElementById('authUser').value.trim().toLowerCase();
-  const p=document.getElementById('authPass').value;
-  if(!USERS[u]||USERS[u].pass!==p){document.getElementById('authErr').textContent='Invalid username or password.';document.getElementById('authPass').value='';return;}
-  CU={...USERS[u],username:u};
-  document.getElementById('authScreen').style.display='none';
+  const u = document.getElementById('authUser').value.trim().toLowerCase();
+  const p = document.getElementById('authPass').value;
+
+  if(!USERS[u] || USERS[u].pass !== p){
+    document.getElementById('authErr').textContent = 'Invalid username or password.';
+    document.getElementById('authPass').value = '';
+    return;
+  }
+
+  CU = { ...USERS[u], username:u };
+
+  document.getElementById('authScreen').style.display = 'none';
   document.getElementById('appScreen').classList.add('show');
-  loadFromGist()
-    .then(()=>{ console.log('Gist loaded, init app'); initApp(); })
-    .catch((e)=>{ console.error('Load failed, init anyway:',e); initApp(); });
+
+  // ✅ IMPORTANT: bypass backend so login works
+  initApp();
 }
 function doLogout(){
   stopAutoSync();
