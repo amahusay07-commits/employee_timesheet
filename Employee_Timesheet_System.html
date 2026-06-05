@@ -138,7 +138,7 @@ select.form-ctrl{background:#fff;}
   <div class="hdr-right">
     <span style="flex:1;font-weight:600;" id="hdrTitle">Timesheet System</span>
     <span id="hdrUser" style="color:#a0d4ff;"></span>
-    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    <button class="logout-btn" onclick="exportData()" style="margin-right:4px;">⬇ Export</button><button class="logout-btn" onclick="importData()" style="margin-right:4px;">⬆ Import</button><button class="logout-btn" onclick="exportData()" id="btnExport" style="display:none;margin-right:4px;">⬇ Export</button><button class="logout-btn" onclick="importData()" id="btnImport" style="display:none;margin-right:4px;">⬆ Import</button><button class="logout-btn" onclick="doLogout()">Sign Out</button>
   </div>
   <div class="ribbon" id="ribbon" style="display:none;">
     <div class="ribbon-inner">
@@ -225,6 +225,7 @@ select.form-ctrl{background:#fff;}
 <script>
 
 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzIJ2Nalvi6RMKR3ITvtf2fjNupCtEeftiEggwPBKzeBJWAOiAeQNW94nWA3OrzJzvU/exec";
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DK=['sun','mon','tue','wed','thu','fri','sat'];
 const USERS={
@@ -238,106 +239,102 @@ const USERS={
 };
 
 // ── GITHUB GIST DATABASE ─────────────────────────────────────────
-// ── GOOGLE APPS SCRIPT DATABASE ─────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJhj3IZ684V_Ec8EoHbrmwHMfnmUniMMEIIlQVuEoDLrGqMkj2xjd7ArtzxNy67_h6A/exec';
+// ── LOCAL STORAGE DATABASE ───────────────────────────────────────
+const G = (k,d) => { try{ return JSON.parse(localStorage.getItem(k))||d; }catch{ return d; } };
+const S = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
-// In-memory cache
-let _db = { requests: [], timesheets: [] };
-function getR(){ return _db.requests   || []; }
-function getT(){ return _db.timesheets || []; }
-function setR(v){ _db.requests   = v; }
-function setT(v){ _db.timesheets = v; }
+function getR(){ return G('ts_r',[]); }
+function getT(){ return G('ts_t',[]); }
+function setR(v){ S('ts_r',v); }
+function setT(v){ S('ts_t',v); }
 
-// ── READ via JSONP (no CORS) ──────────────────────────────────────
-function loadFromGist(){
-  return new Promise((resolve)=>{
-    showLoader('Loading data...');
-    const cb = '__load_'+Date.now();
-    const timer = setTimeout(()=>{
-      cleanup(); hideLoader();
-      console.warn('Load timed out');
-      resolve();
-    }, 15000);
+function jsonp(url){
+  return new Promise((resolve, reject) => {
+    const cb = 'cb_' + Date.now();
 
-    window[cb] = function(resp){
-      cleanup(); hideLoader();
-      if(resp && resp.ok && resp.data){
-        _db.requests   = resp.data.requests   || [];
-        _db.timesheets = resp.data.timesheets || [];
-        console.log('Loaded: '+_db.requests.length+' req, '+_db.timesheets.length+' ts');
+    window[cb] = (data) => {
+      delete window[cb];
+      script.remove();
+      resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.src = url + (url.includes('?') ? '&' : '?') + 'cb=' + cb;
+
+    script.onerror = () => reject(new Error('Request failed'));
+    document.body.appendChild(script);
+  });
+}
+
+async function loadFromGist(){
+  try {
+    const res = await jsonp(GAS_URL + "?action=getAllData");
+
+    if (!res.ok) throw new Error(res.error);
+
+    const mappedReqs = (res.data.requests || []).map(r => ({
+      ...r,
+      hrs: {
+        sun: parseFloat(r.hrs_sun || 0),
+        mon: parseFloat(r.hrs_mon || 0),
+        tue: parseFloat(r.hrs_tue || 0),
+        wed: parseFloat(r.hrs_wed || 0),
+        thu: parseFloat(r.hrs_thu || 0),
+        fri: parseFloat(r.hrs_fri || 0),
+        sat: parseFloat(r.hrs_sat || 0)
       }
-      resolve();
-    };
+    }));
 
-    function cleanup(){
-      clearTimeout(timer);
-      delete window[cb];
-      const s = document.getElementById('_ls');
-      if(s) s.remove();
-    }
+    setR(mappedReqs);
+    setT(res.data.timesheets || []);
 
-    const s = document.createElement('script');
-    s.id  = '_ls';
-    s.src = GAS_URL+'?action=getAllData&cb='+cb;
-    s.onerror = ()=>{ cleanup(); hideLoader(); resolve(); };
-    document.head.appendChild(s);
-  });
-}
-
-// ── WRITE via JSONP (no CORS) ─────────────────────────────────────
-function saveToGist(){
-  return new Promise((resolve, reject)=>{
-    const cb   = '__save_'+Date.now();
-    const data = encodeURIComponent(JSON.stringify(_db));
-    const timer = setTimeout(()=>{
-      cleanup();
-      reject(new Error('Save timed out'));
-    }, 20000);
-
-    window[cb] = function(resp){
-      cleanup();
-      if(resp && resp.ok) resolve();
-      else reject(new Error(resp && resp.error ? resp.error : 'Save failed'));
-    };
-
-    function cleanup(){
-      clearTimeout(timer);
-      delete window[cb];
-      const s = document.getElementById('_ss');
-      if(s) s.remove();
-    }
-
-    const s = document.createElement('script');
-    s.id  = '_ss';
-    s.src = GAS_URL+'?action=syncAll&cb='+cb+'&data='+data;
-    s.onerror = ()=>{ cleanup(); reject(new Error('Save script failed')); };
-    document.head.appendChild(s);
-  });
-}
-
-async function persistR(reqs){ setR(reqs); await saveToGist(); }
-async function persistT(tls){  setT(tls);  await saveToGist(); }
-
-// ── LOADER ────────────────────────────────────────────────────────
-function showLoader(msg){
-  let el=document.getElementById('gloader');
-  if(!el){
-    el=document.createElement('div');el.id='gloader';
-    el.style.cssText='position:fixed;inset:0;background:rgba(15,31,61,.6);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:inherit;backdrop-filter:blur(2px);';
-    el.innerHTML='<div style="font-size:2.2rem;margin-bottom:12px;animation:spin 1s linear infinite;">⏳</div><div id="gloaderMsg" style="font-size:.88rem;font-weight:500;"></div>';
-    document.body.appendChild(el);
+  } catch (e) {
+    console.error("Load error:", e);
+    alert("Failed to load data");
   }
-  document.getElementById('gloaderMsg').textContent=msg||'Loading...';
-  el.style.display='flex';
 }
-function hideLoader(){const el=document.getElementById('gloader');if(el)el.style.display='none';}
+
+async function saveToGist(){
+  const payload = {
+    requests: getR().map(r => ({
+      ...r,
+      hrs_sun: r.hrs.sun,
+      hrs_mon: r.hrs.mon,
+      hrs_tue: r.hrs.tue,
+      hrs_wed: r.hrs.wed,
+      hrs_thu: r.hrs.thu,
+      hrs_fri: r.hrs.fri,
+      hrs_sat: r.hrs.sat,
+    })),
+    timesheets: getT()
+  };
+
+  await jsonp(
+    GAS_URL + "?action=syncAll&data=" +
+    encodeURIComponent(JSON.stringify(payload))
+  );
+}
+
+async function persistR(reqs){
+  setR(reqs);
+  await saveToGist();
+}
+
+async function persistT(tls){
+  setT(tls);
+  await saveToGist();
+}
+
+function showLoader(){}
+function hideLoader(){}
 function showBanner(msg,color){
   color=color||'#1a56a0';
   let el=document.getElementById('sysBanner');
   if(!el){
     el=document.createElement('div');el.id='sysBanner';
     el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9997;padding:10px 16px;font-size:.8rem;font-weight:600;color:#fff;text-align:center;cursor:pointer;';
-    el.onclick=()=>el.remove();document.body.appendChild(el);
+    el.onclick=()=>el.remove();
+    document.body.appendChild(el);
   }
   el.style.background=color;
   el.textContent=msg+' (click to dismiss)';
@@ -426,6 +423,7 @@ function initApp(){
   try {
     migrateData();
   } catch(e){ console.warn('migrate error (non-fatal):', e); }
+  ['btnExport','btnImport'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='inline-block';});
   try {
     document.getElementById('hdrUser').textContent='Welcome, '+CU.name.split(',')[1].trim()+'  |  '+CU.email;
   if(CU.role==='admin'){
@@ -558,7 +556,7 @@ function delReq(id){
   if(!confirm('Delete?'))return;
   showLoader('Deleting...');
   persistR(getR().filter(r=>r.id!==id)).then(()=>{hideLoader();showToast('Deleted.');renderMyReqs();})
-  .catch(e=>{hideLoader();showToast('Error: '+e.message);});
+  
 }
 function submitTask(){
   const task=document.getElementById('fTask').value.trim(),proj=document.getElementById('fProj').value.trim(),ttype=document.getElementById('fType').value,wkv=document.getElementById('fWeek').value,err=document.getElementById('taskErr');
@@ -576,11 +574,11 @@ function submitTask(){
   wkvDate.setDate(wkvDate.getDate()-wkvSinceF);
   const normWk = iso(wkvDate);
   reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:normWk,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
-  showLoader('Saving...');
+  showLoader('Saving request...');
   persistR(reqs).then(()=>{
-    hideLoader();showToast(ED?'Updated!':'Submitted!');
+    hideLoader();showToast(ED?'Request updated!':'Request submitted!');
     closeModal('taskModal');if(CV==='ts')renderTS();else renderMyReqs();
-  }).catch(e=>{hideLoader();showToast('Error: '+e.message);closeModal('taskModal');if(CV==='ts')renderTS();else renderMyReqs();});
+  });
 }
 function saveTS(){showToast('Saved as draft.');}
 function openSendModal(){
@@ -596,9 +594,8 @@ function confirmSend(){
   const ei=tl.findIndex(t=>t.emp===CU.username&&t.wk===w);
   const en={id:'ts'+Date.now(),emp:CU.username,empName:CU.name,wk:w,wkLabel:wkLabel(WO),th,status:'sent',sentAt:new Date().toISOString()};
   if(ei>-1)tl[ei]=en;else tl.push(en);
-  showLoader('Sending...');
-  persistT(tl).then(()=>{hideLoader();closeModal('sendModal');showToast('Timesheet sent to admin!');renderTS();})
-  .catch(e=>{hideLoader();showToast('Error: '+e.message);});
+  persistT(tl);
+  closeModal('sendModal');showToast('Timesheet sent to admin!');renderTS();
 }
 function adminView(v){
   const reqs=getR(),tl=getT();
@@ -653,19 +650,18 @@ function appT(id){
   setT(tl);showToast('Timesheet approved!');adminView(CV);
 }
 function openRJ(id,type){RJID=id;RJTYPE=type;document.getElementById('rejectReason').value='';document.getElementById('rejectModal').classList.add('open');}
-async function confirmReject(){
+function confirmReject(){
   const reason=document.getElementById('rejectReason').value.trim();
-  showLoader('Saving...');
   if(RJTYPE==='ts'){
     const tl=getT();const i=tl.findIndex(t=>t.id===RJID);
     if(i>-1){tl[i].status='rejected';tl[i].rejectReason=reason;}
-    await persistT(tl);
+    persistT(tl);
   } else {
     const r=getR();const i=r.findIndex(x=>x.id===RJID);
     if(i>-1){r[i].status='rejected';r[i].rejectReason=reason;}
-    await persistR(r);
+    persistR(r);
   }
-  hideLoader();closeModal('rejectModal');showToast('Rejected.');adminView(CV);
+  closeModal('rejectModal');showToast('Rejected.');adminView(CV);
 }
 function updateHrs(inputEl){
   const reqId  = inputEl.getAttribute('data-id');
@@ -1169,6 +1165,38 @@ function saveAddRow(unique){
   document.getElementById('addRowModal').classList.remove('open');
   showToast('Row added! Enter your hours.');
   renderTS();
+}
+
+
+// ── EXPORT / IMPORT ───────────────────────────────────────────────
+function exportData(){
+  const data={requests:getR(),timesheets:getT(),exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download='timesheet_'+new Date().toISOString().split('T')[0]+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exported! Share this file with your team.');
+}
+function importData(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=function(e){
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data.requests||!data.timesheets) throw new Error('Invalid file');
+        setR(data.requests);setT(data.timesheets);
+        showToast('Imported! '+data.requests.length+' tasks loaded.');
+        if(CU&&CU.role==='admin')adminView(CV);else renderTS();
+      }catch(e){showToast('Import failed: '+e.message);}
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(input);input.click();document.body.removeChild(input);
 }
 
 </script>
