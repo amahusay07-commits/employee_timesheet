@@ -667,17 +667,20 @@ function renderTS(){
   const dt={};DK.forEach(d=>dt[d]=0);
   reqs.forEach(r=>DK.forEach(d=>{dt[d]+=(r.hrs[d]||0);}));
   const totH=DK.reduce((s,d)=>s+dt[d],0);
-  let abar='';
-  if(ts){
-    if(ts && ts.status==='approved' && ts.sentAt && ts.sentAt!=='') abar=`<div class="approval-bar">&#9432; Your timesheet has been approved by <strong>${ts.approvedBy||'Admin'}</strong>. &nbsp;<strong>Total: ${totH}h</strong> &nbsp;&nbsp;<strong>Period:</strong> ${wkLabel(WO)}</div>`;
-    else if(ts.status==='sent') abar=`<div class="approval-bar" style="background:#fffbe6;border-color:#f0c040;color:#7a5000;">&#9203; Timesheet sent — awaiting admin approval. &nbsp;<strong>Total: ${totH}h</strong></div>`;
-  }
+  let abar = '';
+  if(ts && ts.status === 'sent'){
+  abar = `<div class="approval-bar">
+    ✅ <strong>${CU.name}</strong> submitted the timesheet for period 
+    <strong>${wkShort(WO)}</strong>
+  </div>`;
+}
+
   let rows='';
   if(reqs.length===0){
     rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Go to <strong>My Requests</strong> and click the <strong>Add Request</strong> button.</td></tr>`;
   } else {
     reqs.forEach(r=>{
-      const isLocked=!!(ts && ts.status==='approved' && ts.sentAt && ts.sentAt!=='');
+      const isLocked = !!(ts && ts.status === 'sent');
       const cells=DK.map((d,i)=>{
         const h=r.hrs[d]||0;
         const wk2=(i===6);
@@ -701,7 +704,7 @@ function renderTS(){
     rows+=`<tr class="total-row"><td></td><td></td><td style="text-align:right;color:var(--muted);padding-right:8px;">Total work</td><td></td>${tc}</tr>`;
   }
   const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]} ${fs(d)}</th>`).join('');
-  const canSend=reqs.length>0&&(!ts||ts.status==='draft'||!ts.sentAt);
+  const canSend = reqs.length > 0 && (!ts || ts.status !== 'sent');
   document.getElementById('btnSend').disabled=!canSend;
   document.getElementById('mainArea').innerHTML=`${abar}
     <div class="week-nav-bar">
@@ -807,13 +810,43 @@ function openSendModal(){
   document.getElementById('sendModal').classList.add('open');
 }
 function confirmSend(){
-  const w = wk(WO),
-  tl = getT();
+  const w = wk(WO);
+  const tl = getT();
 
+  // ✅ get approved tasks
   const reqs = getR().filter(r =>
-  r.emp === CU.username &&
-  r.status === 'approved'
-);
+    r.emp === CU.username &&
+    r.status === 'approved'
+  );
+
+  // ✅ calculate total hours
+  const th = reqs.reduce((s,r)=>
+    s + DK.reduce((ss,d)=> ss + (r.hrs[d] || 0), 0)
+  ,0);
+
+  // ✅ create timesheet record with status = SENT
+  const ei = tl.findIndex(t => t.emp === CU.username && t.wk === w);
+
+  const entry = {
+    id:'ts'+Date.now(),
+    emp: CU.username,
+    empName: CU.name,
+    wk: w,
+    wkLabel: wkLabel(WO),
+    th,
+    status:'sent',   // ✅ CRITICAL
+    sentAt:new Date().toISOString()
+  };
+
+  if(ei > -1) tl[ei] = entry;
+  else tl.push(entry);
+
+  persistT(tl);
+
+  closeModal('sendModal');
+  showToast('Timesheet submitted!');
+  renderTS();
+}
 
   const th=reqs.reduce((s,r)=>s+DK.reduce((ss,d)=>ss+(r.hrs[d]||0),0),0);
   const ei=tl.findIndex(t=>t.emp===CU.username&&t.wk===w);
