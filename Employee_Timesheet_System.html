@@ -226,8 +226,9 @@ select.form-ctrl{background:#fff;}
 
 
 
-const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const DK=['sun','mon','tue','wed','thu','fri','sat'];
+
+const DAYS=['Fri','Sat','Sun','Mon','Tue','Wed','Thu'];
+const DK=['fri','sat','sun','mon','tue','wed','thu'];
 const USERS={
   'admin':{pass:'admin2025',role:'admin',name:'Mahusay, Arey',email:'arey.mahusay@accenture.com'},
   'donna.lyn.t.leonen':{pass:'224906',role:'employee',name:'Leonen, Donna Lyn T.',email:'donna.lyn.t.leonen@accenture.com'},
@@ -541,7 +542,19 @@ function getFri(o){
   d.setHours(0,0,0,0);
   return d;
 }
-function getDates(o){const f=getFri(o);return DK.map((_,i)=>{const d=new Date(f);d.setDate(f.getDate()+i);return d;});}
+
+function getDates(o){
+  const f = getFri(o); // Friday
+  return [
+    new Date(f),                         // Fri
+    new Date(f.getTime()+1*86400000),    // Sat
+    new Date(f.getTime()+2*86400000),    // Sun
+    new Date(f.getTime()+3*86400000),    // Mon
+    new Date(f.getTime()+4*86400000),    // Tue
+    new Date(f.getTime()+5*86400000),    // Wed
+    new Date(f.getTime()+6*86400000)     // Thu
+  ];
+}
 function wk(o){return iso(getFri(o));}
 function iso(d){
   const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
@@ -683,7 +696,7 @@ function renderTS(){
     const tc=DK.map((d,i)=>{const wk2=(i===6);return `<td class="hrs${wk2?' wknd':''}">${dt[d]||''}</td>`;}).join('');
     rows+=`<tr class="total-row"><td></td><td></td><td style="text-align:right;color:var(--muted);padding-right:8px;">Total work</td><td></td>${tc}</tr>`;
   }
-  const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]}<br><span style="font-size:.58rem;font-weight:400;">${fs(d)}</span></th>`).join('');
+  const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]} ${fs(d)}</th>`).join('');
   const canSend=reqs.length>0&&(!ts||ts.status==='draft'||!ts.sentAt);
   document.getElementById('btnSend').disabled=!canSend;
   document.getElementById('mainArea').innerHTML=`${abar}
