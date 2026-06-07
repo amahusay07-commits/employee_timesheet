@@ -671,6 +671,7 @@ function renderTS(){
 });
 
   const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
+  const allTS = getT().filter(t => t.emp === CU.username);
   const dt={};DK.forEach(d=>dt[d]=0);
   reqs.forEach(r=>DK.forEach(d=>{dt[d]+=(r.hrs[d]||0);}));
   const totH=DK.reduce((s,d)=>s+dt[d],0);
@@ -713,7 +714,53 @@ function renderTS(){
   const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]} ${fs(d)}</th>`).join('');
   const canSend = reqs.length > 0 && (!ts || ts.status !== 'sent');
   document.getElementById('btnSend').disabled=!canSend;
-  document.getElementById('mainArea').innerHTML=`${abar}
+  // ✅ NEW: Build Timesheet History UI
+let historyHTML = '';
+
+if (allTS.length > 0) {
+
+  historyHTML += `
+  <div class="card" style="margin:14px 16px;">
+    <div class="card-head">
+      <span class="card-title">Timesheet History</span>
+    </div>
+  `;
+
+  allTS.forEach(t => {
+
+    const tasks = getR().filter(r =>
+      r.emp === t.emp &&
+      r.status === 'approved' &&
+      normalizeFriday(r.wk) === normalizeFriday(t.wk)
+    );
+
+    let taskList = tasks.map(r => {
+      const totalHours = DK.reduce((s,d)=>s+(r.hrs[d]||0),0);
+      return `${r.task} (${totalHours}h)`;
+    }).join(', ');
+
+    historyHTML += `
+      <div class="req-row">
+        <div class="req-info">
+          <div class="req-name">${t.empName}</div>
+          <div class="req-detail">
+            ${t.wkLabel} · Total: ${t.th}h · Status: ${t.status}
+          </div>
+          <div style="font-size:.7rem;color:#5a6a85;">
+            Tasks: ${taskList || 'No tasks'}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  historyHTML += `</div>`;
+}
+  
+document.getElementById('mainArea').innerHTML = `
+${abar}
+${historyHTML}
+
     <div class="week-nav-bar">
       <div style="font-size:.76rem;color:var(--muted);">Period: <strong style="color:var(--navy);">${wkLabel(WO)}</strong> <span style="font-size:.65rem;color:var(--muted);">(wk: ${w})</span></div>
       <div style="display:flex;align-items:center;gap:6px;">
