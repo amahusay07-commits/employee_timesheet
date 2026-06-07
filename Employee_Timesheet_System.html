@@ -581,11 +581,13 @@ function wkShortByDate(wk){
 function renderHistoryTable(wk){
   if(!wk) return;
 
+  
   const reqs = getR().filter(r =>
-    r.emp === CU.username &&
-    r.status === 'approved' &&
-    normalizeFriday(r.wk) === normalizeFriday(wk)
-  );
+  r.emp === CU.username &&
+  r.status === 'approved' &&
+  normalizeFriday(r.wk) === wk
+);
+
 
   let totals = {fri:0,sat:0,sun:0,mon:0,tue:0,wed:0,thu:0};
 
