@@ -422,10 +422,12 @@ function applyRemoteData(payload, opts={}){
   updateSyncStatus('Synced ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
 
   if(opts.rerender && CU){
-    if(CU.role==='admin') adminView(CV);
-    else if(CV==='rq') renderMyReqs();
-    else renderTS();
-  }
+  if(CU.role==='admin') adminView(CV);
+  else if(CV==='rq') renderMyReqs();
+  else if(CV==='hs') renderHistory();   // ✅ KEEP history page visible
+  else renderTS();
+}
+
 }
 
 async function loadFromGist(){
@@ -687,13 +689,15 @@ function doLogout(){
 
 // ── DATA MIGRATION: normalize all wk keys to local Friday ───────────────────
 function normalizeFriday(dateStr){
-  // Normalize any date to the Sunday of its week
+  // Normalize any date to the Friday of its (Fri–Thu) work week
   if(!dateStr) return dateStr;
-  const d = new Date(dateStr+'T12:00:00');
-  const dy = d.getDay(); // 0=Sun
-  d.setDate(d.getDate()-dy); // go back to Sunday
+  const d = new Date(dateStr + 'T12:00:00');
+  const dy = d.getDay(); // 0=Sun..6=Sat
+  const diff = (dy - 5 + 7) % 7; // days since Friday
+  d.setDate(d.getDate() - diff); // go back to Friday
   return iso(d);
 }
+
 function migrateData(){
   // Fix request wk keys
   const reqs = getR();
