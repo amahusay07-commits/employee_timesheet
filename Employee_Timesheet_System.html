@@ -653,16 +653,28 @@ function initApp(){
   } else {
     document.getElementById('hdrTitle').textContent='Timesheet';
     document.getElementById('ribbon').style.display='block';
-    document.getElementById('sidebar').innerHTML=`<div class="sidebar-section"><div class="sid-label">Navigation</div>
-      <a class="sid-item active" id="sv-ts" onclick="sv2('ts')">Timesheet</a>
-      <a class="sid-item" id="sv-rq" onclick="sv2('rq')">My Requests</a>
-    </div>`;
+    document.getElementById('sidebar').innerHTML=`
+	<div class="sidebar-section">
+	  <div class="sid-label">Navigation</div>
+	  <a class="sid-item active" id="sv-ts" onclick="sv2('ts')">Timesheet</a>
+	  <a class="sid-item" id="sv-rq" onclick="sv2('rq')">My Requests</a>
+	  <a class="sid-item" id="sv-hs" onclick="sv2('hs')">Timesheet History</a>
+	</div>`;
     renderTS();
   }
   } catch(e){ console.error('initApp error:',e); showBanner('App error: '+e.message,'#c8102e'); }
 }
 function sv(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');adminView(v);}
-function sv2(v){CV=v;document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));const el=document.getElementById('sv-'+v);if(el)el.classList.add('active');if(v==='ts')renderTS();else renderMyReqs();}
+function sv2(v){
+  CV=v;
+  document.querySelectorAll('.sid-item').forEach(x=>x.classList.remove('active'));
+  const el=document.getElementById('sv-'+v);
+  if(el)el.classList.add('active');
+
+  if(v==='ts') renderTS();
+  else if(v==='rq') renderMyReqs();
+  else if(v==='hs') renderHistory(); // ✅ NEW
+}
 function renderTS(){
   const w=wk(WO),ds=getDates(WO);
   const reqs = getR().filter(r => {
@@ -802,6 +814,54 @@ function renderMyReqs(){
     <div class="card-head"><span class="card-title">My Task Requests</span><button class="btn btn-primary btn-sm" onclick="openTaskModal()">+ Add Request</button></div>
     <div>${rows}</div>
   </div></div>`;
+}
+function renderHistory(){
+
+  const allTS = getT().filter(t => t.emp === CU.username);
+
+  let html = `
+  <div class="panel-area">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Timesheet History</span>
+      </div>
+  `;
+
+  if(allTS.length === 0){
+    html += `<div class="empty">No timesheet history yet.</div>`;
+  } else {
+
+    allTS.forEach(t => {
+
+      const tasks = getR().filter(r =>
+        r.emp === t.emp &&
+        r.status === 'approved'
+      );
+
+      let taskList = tasks.map(r => {
+        const totalHours = DK.reduce((s,d)=>s+(r.hrs[d]||0),0);
+        return `${r.task} - ${r.proj} (${totalHours}h)`;
+      }).join(', ');
+
+      html += `
+        <div class="req-row">
+          <div class="req-info">
+            <div class="req-name">${t.empName}</div>
+            <div class="req-detail">
+              ${t.wkLabel} · Total: ${t.th}h · Status: ${t.status}
+            </div>
+            <div style="font-size:.7rem;color:#5a6a85;">
+              Tasks: ${taskList || 'No tasks'}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  html += `</div></div>`;
+
+  document.getElementById('mainArea').innerHTML = html;
 }
 function changeWeek(d){WO+=d;renderTS();}
 function openTaskModal(eid){
