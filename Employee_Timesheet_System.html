@@ -471,13 +471,17 @@ async function saveToGist(actionLabel='sync'){
     LAST_SYNC_AT = new Date();
     updateSyncStatus('Saved ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
   } catch (e) {
-    console.error('SAVE ERROR:', e);
-    updateSyncStatus('Save failed', '#ffb3b3');
-    showToast('Save error: ' + e.message);
-    throw e;
-  } finally {
-    IS_SAVING = false;
-  }
+  console.error('SAVE ERROR:', e);
+
+  // ✅ Do NOT break SEND / APPROVE flow
+  updateSyncStatus('Offline / retry later', '#ffb3b3');
+  showToast('Temporary save issue. Data kept locally.');
+
+  // ❌ DO NOT throw
+} finally {
+  IS_SAVING = false;
+}
+
 }
 
 async function persistR(reqs){
