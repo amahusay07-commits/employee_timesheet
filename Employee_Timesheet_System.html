@@ -463,47 +463,28 @@ async function saveToGist(actionLabel='sync'){
   };
 
   try {
-    // ✅ 1) TRY POST (fixes URL too long / JSONP failures)
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 20000);
-
     const resp = await fetch(GAS_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: 'action=syncAll&data=' + encodeURIComponent(JSON.stringify(payload)),
-      signal: controller.signal
+      body: 'action=syncAll&data=' + encodeURIComponent(JSON.stringify(payload))
     });
 
-    clearTimeout(t);
-
     const text = await resp.text();
-    let res;
-    try { res = JSON.parse(text); } catch { res = null; }
+    const res = JSON.parse(text);
 
-    if(res && res.ok === true){
-      LAST_SERVER_HASH = dataHash(syncSnapshot());
-      LAST_SYNC_AT = new Date();
-      updateSyncStatus('Saved ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
-      return true;
-    }
-
-    // ✅ 2) FALLBACK JSONP (if POST not supported by your GAS)
-    const jp = await jsonp(
-      GAS_URL + '?action=syncAll&data=' + encodeURIComponent(JSON.stringify(payload))
-    );
-    if (!jp || jp.ok !== true) throw new Error(jp?.error || 'Save failed');
+    if(!res || res.ok !== true) throw new Error(res?.error || 'Save failed');
 
     LAST_SERVER_HASH = dataHash(syncSnapshot());
     LAST_SYNC_AT = new Date();
     updateSyncStatus('Saved ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
     return true;
 
-  } catch (e) {
+  } catch(e) {
     console.error('SAVE ERROR:', e);
-    updateSyncStatus('Offline (saved locally)', '#ffb3b3');
+    updateSyncStatus('Save failed', '#ffb3b3');
     showToast('Save failed: ' + (e.message || 'Unknown error'));
-    return false; // ✅ do not throw; keep app usable
+    return false;
+
   } finally {
     IS_SAVING = false;
   }
