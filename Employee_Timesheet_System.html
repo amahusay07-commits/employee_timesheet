@@ -568,9 +568,14 @@ function iso(d){
 function fm(d){return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();}
 function fs(d){return (d.getMonth()+1)+'/'+d.getDate();}
 function wkShortByDate(wk){
+  if(!wk || wk.includes('NaN')) return 'Invalid period';
+
   const fri = new Date(wk + 'T12:00:00');
+  if (isNaN(fri.getTime())) return 'Invalid period';
+
   const thu = new Date(fri);
   thu.setDate(fri.getDate() + 6);
+
   return fs(fri) + ' – ' + fs(thu);
 }
 function renderHistoryTable(wk){
@@ -847,9 +852,12 @@ function renderHistory(){
     return;
   }
 
-  const options = allTS.map(t =>
+  const options = allTS
+  .filter(t => t.wk && !t.wk.includes('NaN'))
+  .map(t =>
     `<option value="${t.wk}">${wkShortByDate(t.wk)}</option>`
-  ).join('');
+  )
+  .join('');
 
   document.getElementById('mainArea').innerHTML = `
     <div class="panel-area">
