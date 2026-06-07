@@ -490,6 +490,13 @@ async function persistT(tls){
 
 async function checkForRemoteChanges(force=false){
   if(IS_SAVING || IS_LOADING_REMOTE || !CU) return;
+  
+// ✅ Do not pull remote changes while user is actively editing
+if(!force && LOCAL_DIRTY && (Date.now() - LAST_EDIT_AT) < EDIT_IDLE_MS){
+  updateSyncStatus('Editing… (sync paused)', '#ffd87a');
+  return;
+}
+
   try {
     const res = await jsonp(GAS_URL + '?action=getAllData');
     if (!res || res.ok !== true) return;
@@ -500,15 +507,22 @@ async function checkForRemoteChanges(force=false){
     const remoteHash = dataHash(remote);
     const localHash = dataHash(syncSnapshot());
     if(force || (!LAST_SERVER_HASH || remoteHash !== LAST_SERVER_HASH)){
-      if(remoteHash !== localHash || force){
-        applyRemoteData(remote, { rerender:true });
-        if(!force) showToast('Latest data synced from server');
-      } else {
-        LAST_SERVER_HASH = remoteHash;
-        LAST_SYNC_AT = new Date();
-        updateSyncStatus('Up to date ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
-      }
+  if(remoteHash !== localHash || force){
+
+    // ✅ PREVENT overwrite while employee is typing
+    if(!force && LOCAL_DIRTY){
+      updateSyncStatus('Local changes pending (not overwritten)', '#ffd87a');
+      return;
     }
+
+    applyRemoteData(remote, { rerender:true });
+    if(!force) showToast('Latest data synced from server');
+  } else {
+    LAST_SERVER_HASH = remoteHash;
+    LAST_SYNC_AT = new Date();
+    updateSyncStatus('Up to date ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
+  }
+}
   } catch(e) {
     console.warn('Background sync skipped:', e.message);
     updateSyncStatus('Connection issue', '#ffb3b3');
@@ -532,6 +546,10 @@ function hideLoader(){
 
 
 let CU=null,WO=0,RJID=null,RJTYPE='req',ED=null,CV='ts';
+let LOCAL_DIRTY = false;
+let LAST_EDIT_AT = 0;
+const EDIT_IDLE_MS = 2500; // consider user "idle" after 2.5s no typing
+
 function getFri(o){
   const now = new Date();
   const day = now.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri
@@ -1070,9 +1088,22 @@ function updateHrs(inputEl){
     if(!reqs[idx].hrs) reqs[idx].hrs={};
     reqs[idx].hrs[dayKey] = parseFloat(val)||0;
     setR(reqs);
-    refreshTotals();
-    clearTimeout(window._hrTimer);
-    window._hrTimer=setTimeout(()=>{saveToGist().catch(e=>showToast('Save error: '+e.message));},1200);
+refreshTotals();
+
+// mark local edits as dirty
+LOCAL_DIRTY = true;
+LAST_EDIT_AT = Date.now();
+updateSyncStatus('Unsaved changes', '#ffd87a');
+
+clearTimeout(window._hrTimer);
+window._hrTimer = setTimeout(() => {
+  saveToGist('hrs_edit')
+    .then(() => {
+      LOCAL_DIRTY = false;
+      updateSyncStatus('Saved ' + new Date().toLocaleTimeString(), '#9fe3b5');
+    })
+    .catch(e => showToast('Save error: ' + e.message));
+}, 2000); // slightly longer debounce to reduce flicker
   }
 }
 function refreshTotals(){
