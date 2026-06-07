@@ -567,6 +567,71 @@ function iso(d){
 }
 function fm(d){return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();}
 function fs(d){return (d.getMonth()+1)+'/'+d.getDate();}
+function wkShortByDate(wk){
+  const fri = new Date(wk + 'T12:00:00');
+  const thu = new Date(fri);
+  thu.setDate(fri.getDate() + 6);
+  return fs(fri) + ' – ' + fs(thu);
+}
+function renderHistoryTable(wk){
+  if(!wk) return;
+
+  const reqs = getR().filter(r =>
+    r.emp === CU.username &&
+    r.status === 'approved' &&
+    normalizeFriday(r.wk) === normalizeFriday(wk)
+  );
+
+  let totals = {fri:0,sat:0,sun:0,mon:0,tue:0,wed:0,thu:0};
+
+  const rows = reqs.map(r => {
+    DK.forEach(d => totals[d] += r.hrs[d] || 0);
+    return `
+      <tr>
+        <td>${r.task}</td>
+        <td>${r.proj}</td>
+        <td>${r.ttype}</td>
+        ${DK.map(d => `<td class="hrs">${r.hrs[d] || ''}</td>`).join('')}
+      </tr>
+    `;
+  }).join('');
+
+  const totalRow = `
+    <tr class="total-row">
+      <td colspan="3" style="text-align:right">Total Work</td>
+      ${DK.map(d => `<td class="hrs">${totals[d] || ''}</td>`).join('')}
+    </tr>
+  `;
+
+  document.getElementById('historyTable').innerHTML = `
+    <div class="ts-wrap">
+      <table class="ts">
+        <thead>
+          <tr>
+            <th class="left">Task Name</th>
+            <th class="left">Project</th>
+            <th>Time Type</th>
+            ${getDatesByWeek(wk).map((d,i) =>
+              `<th>${DAYS[i]} ${fs(d)}</th>`
+            ).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          ${totalRow}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+function getDatesByWeek(wk){
+  const fri = new Date(wk + 'T12:00:00');
+  return Array.from({length:7},(_,i)=>{
+    const d = new Date(fri);
+    d.setDate(fri.getDate() + i);
+    return d;
+  });
+}
 function wkLabel(o){const ds=getDates(o);return fm(ds[0])+' 12:00 AM - '+fm(ds[6])+' 11:59 PM';}
 function wkShort(o){const ds=getDates(o);return fs(ds[0])+' – '+fs(ds[6]);}
 function doLogin(){
@@ -726,52 +791,8 @@ function renderTS(){
   const dh=ds.map((d,i)=>`<th style="min-width:56px;">${DAYS[i]} ${fs(d)}</th>`).join('');
   const canSend = reqs.length > 0 && (!ts || ts.status !== 'sent');
   document.getElementById('btnSend').disabled=!canSend;
-  // ✅ NEW: Build Timesheet History UI
-let historyHTML = '';
-
-if (allTS.length > 0) {
-
-  historyHTML += `
-  <div class="card" style="margin:14px 16px;">
-    <div class="card-head">
-      <span class="card-title">Timesheet History</span>
-    </div>
-  `;
-
-  allTS.forEach(t => {
-
-    const tasks = getR().filter(r =>
-      r.emp === t.emp &&
-      r.status === 'approved' &&
-      normalizeFriday(r.wk) === normalizeFriday(t.wk)
-    );
-
-    let taskList = tasks.map(r => {
-      const totalHours = DK.reduce((s,d)=>s+(r.hrs[d]||0),0);
-      return `${r.task} (${totalHours}h)`;
-    }).join(', ');
-
-    historyHTML += `
-      <div class="req-row">
-        <div class="req-info">
-          <div class="req-name">${t.empName}</div>
-          <div class="req-detail">
-            ${t.wkLabel} · Total: ${t.th}h · Status: ${t.status}
-          </div>
-          <div style="font-size:.7rem;color:#5a6a85;">
-            Tasks: ${taskList || 'No tasks'}
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  historyHTML += `</div>`;
-}
-  
-document.getElementById('mainArea').innerHTML = `
+  document.getElementById('mainArea').innerHTML = `
 ${abar}
-${historyHTML}
 
     <div class="week-nav-bar">
       <div style="font-size:.76rem;color:var(--muted);">Period: <strong style="color:var(--navy);">${wkLabel(WO)}</strong> <span style="font-size:.65rem;color:var(--muted);">(wk: ${w})</span></div>
@@ -816,52 +837,36 @@ function renderMyReqs(){
   </div></div>`;
 }
 function renderHistory(){
-
-  const allTS = getT().filter(t => t.emp === CU.username);
-
-  let html = `
-  <div class="panel-area">
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Timesheet History</span>
-      </div>
-  `;
+  const allTS = getT()
+    .filter(t => t.emp === CU.username)
+    .sort((a,b) => new Date(b.wk) - new Date(a.wk));
 
   if(allTS.length === 0){
-    html += `<div class="empty">No timesheet history yet.</div>`;
-  } else {
-
-    allTS.forEach(t => {
-
-      const tasks = getR().filter(r =>
-        r.emp === t.emp &&
-        r.status === 'approved'
-      );
-
-      let taskList = tasks.map(r => {
-        const totalHours = DK.reduce((s,d)=>s+(r.hrs[d]||0),0);
-        return `${r.task} - ${r.proj} (${totalHours}h)`;
-      }).join(', ');
-
-      html += `
-        <div class="req-row">
-          <div class="req-info">
-            <div class="req-name">${t.empName}</div>
-            <div class="req-detail">
-              ${t.wkLabel} · Total: ${t.th}h · Status: ${t.status}
-            </div>
-            <div style="font-size:.7rem;color:#5a6a85;">
-              Tasks: ${taskList || 'No tasks'}
-            </div>
-          </div>
-        </div>
-      `;
-    });
+    document.getElementById('mainArea').innerHTML =
+      `<div class="empty">No timesheet history yet.</div>`;
+    return;
   }
 
-  html += `</div></div>`;
+  const options = allTS.map(t =>
+    `<option value="${t.wk}">${wkShortByDate(t.wk)}</option>`
+  ).join('');
 
-  document.getElementById('mainArea').innerHTML = html;
+  document.getElementById('mainArea').innerHTML = `
+    <div class="panel-area">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Timesheet History</span>
+          <select class="form-ctrl"
+            style="max-width:200px"
+            onchange="renderHistoryTable(this.value)">
+            <option value="">Select period</option>
+            ${options}
+          </select>
+        </div>
+        <div id="historyTable" class="ts-container"></div>
+      </div>
+    </div>
+  `;
 }
 function changeWeek(d){WO+=d;renderTS();}
 function openTaskModal(eid){
