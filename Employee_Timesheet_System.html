@@ -256,6 +256,15 @@ function getR(){ return G('ts_r',[]); }
 function getT(){ return G('ts_t',[]); }
 function setR(v){ S('ts_r',v); }
 function setT(v){ S('ts_t',v); }
+function persistR(reqs){
+  setR(reqs);
+  return Promise.resolve(true);
+}
+
+function persistT(ts){
+  setT(ts);
+  return Promise.resolve(true);
+}
 function stableStringify(obj){ return JSON.stringify(obj, Object.keys(obj).sort()); }
 function dataHash(data){ return JSON.stringify(data); }
 function syncSnapshot(){ return { requests:getR(), timesheets:getT() }; }
