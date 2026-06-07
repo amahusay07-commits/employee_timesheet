@@ -448,40 +448,65 @@ async function loadFromGist(){
 }
 
 async function saveToGist(actionLabel='sync'){
-  if(IS_SAVING) return;
+  if(IS_SAVING) return false;
   IS_SAVING = true;
   updateSyncStatus('Saving...', '#ffd87a');
-  try {
-    const payload = {
-      requests: getR().map(mapRequestToGs),
-      timesheets: getT().map(mapTimesheetToGs),
-      actorUsername: CU?.username || '',
-      actorName: CU?.name || '',
-      actorRole: CU?.role || '',
-      source: 'github_pages',
-      actionLabel
-    };
 
-    const res = await jsonp(
+  const payload = {
+    requests: getR().map(mapRequestToGs),
+    timesheets: getT().map(mapTimesheetToGs),
+    actorUsername: CU?.username || '',
+    actorName: CU?.name || '',
+    actorRole: CU?.role || '',
+    source: 'github_pages',
+    actionLabel
+  };
+
+  try {
+    // ✅ 1) TRY POST (fixes URL too long / JSONP failures)
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 20000);
+
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: 'action=syncAll&data=' + encodeURIComponent(JSON.stringify(payload)),
+      signal: controller.signal
+    });
+
+    clearTimeout(t);
+
+    const text = await resp.text();
+    let res;
+    try { res = JSON.parse(text); } catch { res = null; }
+
+    if(res && res.ok === true){
+      LAST_SERVER_HASH = dataHash(syncSnapshot());
+      LAST_SYNC_AT = new Date();
+      updateSyncStatus('Saved ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
+      return true;
+    }
+
+    // ✅ 2) FALLBACK JSONP (if POST not supported by your GAS)
+    const jp = await jsonp(
       GAS_URL + '?action=syncAll&data=' + encodeURIComponent(JSON.stringify(payload))
     );
+    if (!jp || jp.ok !== true) throw new Error(jp?.error || 'Save failed');
 
-    if (!res || res.ok !== true) throw new Error(res?.error || 'Save failed');
     LAST_SERVER_HASH = dataHash(syncSnapshot());
     LAST_SYNC_AT = new Date();
     updateSyncStatus('Saved ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
+    return true;
+
   } catch (e) {
-  console.error('SAVE ERROR:', e);
-
-  // ✅ Do NOT break SEND / APPROVE flow
-  updateSyncStatus('Offline / retry later', '#ffb3b3');
-  showToast('Temporary save issue. Data kept locally.');
-
-  // ❌ DO NOT throw
-} finally {
-  IS_SAVING = false;
-}
-
+    console.error('SAVE ERROR:', e);
+    updateSyncStatus('Offline (saved locally)', '#ffb3b3');
+    showToast('Save failed: ' + (e.message || 'Unknown error'));
+    return false; // ✅ do not throw; keep app usable
+  } finally {
+    IS_SAVING = false;
+  }
 }
 
 async function persistR(reqs){
@@ -1110,7 +1135,7 @@ window._hrTimer = setTimeout(() => {
       LOCAL_DIRTY = false;
       updateSyncStatus('Saved ' + new Date().toLocaleTimeString(), '#9fe3b5');
     })
-    .catch(e => showToast('Save error: ' + e.message));
+    .catch(() => updateSyncStatus('Offline (saved locally)', '#ffb3b3'));
 }, 2000); // slightly longer debounce to reduce flicker
   }
 }
