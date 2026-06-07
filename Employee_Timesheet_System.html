@@ -447,6 +447,50 @@ async function loadFromGist(){
   }
 }
 
+function postToGas(payload){
+  return new Promise((resolve) => {
+    const iframeName = 'gas_iframe_' + Date.now();
+    const iframe = document.createElement('iframe');
+    iframe.name = iframeName;
+    iframe.style.display = 'none';
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = GAS_URL;
+    form.target = iframeName;
+
+    const a = document.createElement('input');
+    a.type = 'hidden';
+    a.name = 'action';
+    a.value = 'syncAll';
+
+    const d = document.createElement('input');
+    d.type = 'hidden';
+    d.name = 'data';
+    d.value = encodeURIComponent(JSON.stringify(payload));
+
+    form.appendChild(a);
+    form.appendChild(d);
+
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+
+    let done = false;
+    const finish = (ok) => {
+      if(done) return;
+      done = true;
+      form.remove();
+      iframe.remove();
+      resolve(ok);
+    };
+
+    iframe.onload = () => finish(true);
+    setTimeout(() => finish(true), 2500); // assume ok after submit
+
+    form.submit();
+  });
+}
+
 async function saveToGist(actionLabel='sync'){
   if(IS_SAVING) return false;
   IS_SAVING = true;
@@ -463,23 +507,20 @@ async function saveToGist(actionLabel='sync'){
   };
 
   try {
-    const resp = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: 'action=syncAll&data=' + encodeURIComponent(JSON.stringify(payload))
-    });
+    const ok = await postToGas(payload);
 
-    const text = await resp.text();
-    const res = JSON.parse(text);
+    if(ok){
+      LAST_SERVER_HASH = dataHash(syncSnapshot());
+      LAST_SYNC_AT = new Date();
+      updateSyncStatus('Saved ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
+      return true;
+    }
 
-    if(!res || res.ok !== true) throw new Error(res?.error || 'Save failed');
+    updateSyncStatus('Save failed', '#ffb3b3');
+    showToast('Save failed.');
+    return false;
 
-    LAST_SERVER_HASH = dataHash(syncSnapshot());
-    LAST_SYNC_AT = new Date();
-    updateSyncStatus('Saved ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
-    return true;
-
-  } catch(e) {
+  } catch(e){
     console.error('SAVE ERROR:', e);
     updateSyncStatus('Save failed', '#ffb3b3');
     showToast('Save failed: ' + (e.message || 'Unknown error'));
@@ -488,25 +529,6 @@ async function saveToGist(actionLabel='sync'){
   } finally {
     IS_SAVING = false;
   }
-}
-
-async function persistR(reqs){
-  setR(reqs);
-  await saveToGist('requests_update');
-}
-
-async function persistT(tls){
-  setT(tls);
-  await saveToGist('timesheets_update');
-}
-
-async function checkForRemoteChanges(force=false){
-  if(IS_SAVING || IS_LOADING_REMOTE || !CU) return;
-  
-// ✅ Do not pull remote changes while user is actively editing
-if(!force && LOCAL_DIRTY && (Date.now() - LAST_EDIT_AT) < EDIT_IDLE_MS){
-  updateSyncStatus('Editing… (sync paused)', '#ffd87a');
-  return;
 }
 
   try {
