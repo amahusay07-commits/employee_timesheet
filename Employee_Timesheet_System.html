@@ -531,38 +531,6 @@ async function saveToGist(actionLabel='sync'){
   }
 }
 
-  try {
-    const res = await jsonp(GAS_URL + '?action=getAllData');
-    if (!res || res.ok !== true) return;
-    const remote = {
-      requests: (res.data?.requests || []).map(mapRequestFromGs),
-      timesheets: (res.data?.timesheets || []).map(mapTimesheetFromGs)
-    };
-    const remoteHash = dataHash(remote);
-    const localHash = dataHash(syncSnapshot());
-    if(force || (!LAST_SERVER_HASH || remoteHash !== LAST_SERVER_HASH)){
-  if(remoteHash !== localHash || force){
-
-    // ✅ PREVENT overwrite while employee is typing
-    if(!force && LOCAL_DIRTY){
-      updateSyncStatus('Local changes pending (not overwritten)', '#ffd87a');
-      return;
-    }
-
-    applyRemoteData(remote, { rerender:true });
-    if(!force) showToast('Latest data synced from server');
-  } else {
-    LAST_SERVER_HASH = remoteHash;
-    LAST_SYNC_AT = new Date();
-    updateSyncStatus('Up to date ' + LAST_SYNC_AT.toLocaleTimeString(), '#9fe3b5');
-  }
-}
-  } catch(e) {
-    console.warn('Background sync skipped:', e.message);
-    updateSyncStatus('Connection issue', '#ffb3b3');
-  }
-}
-
 function startAutoSync(){
   stopAutoSync();
   SYNC_TIMER = setInterval(() => checkForRemoteChanges(false), AUTO_SYNC_MS);
