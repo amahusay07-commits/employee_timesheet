@@ -788,13 +788,14 @@ function getCheckedTaskIds(){
 }
 
 function renderTS(){
-  const w=wk(WO),ds=getDates(WO);
-  const w = wk(WO), ds = getDates(WO);
+  const w = wk(WO);
+  const ds = getDates(WO);
+
   const reqs = getR().filter(r =>
-  r.emp === CU.username &&
-  r.status === 'approved' &&
-  normalizeFriday(r.wk) === w
-);
+    r.emp === CU.username &&
+    r.status === 'approved' &&
+    normalizeFriday(r.wk) === w
+  );
 
   const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
   const allTS = getT().filter(t => t.emp === CU.username);
