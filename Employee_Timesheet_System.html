@@ -830,7 +830,22 @@ function renderTS(){
             ></td>`;
         return cell;
       }).join('');
-      rows+=`<tr><td style="width:26px;text-align:center;"><input type="checkbox"></td><td class="task-name">${r.task}</td><td class="project">${r.proj}</td><td class="ttype">${r.ttype}</td>${cells}</tr>`;
+      rows+=`<tr>
+  <td style="width:48px;text-align:center;">
+    <input type="checkbox">
+    ${isLocked ? '' : `
+      <button
+        title="Delete row"
+        onclick="deleteTaskRow('${r.id}')"
+        style="border:none;background:none;color:#c8102e;cursor:pointer;font-size:14px;margin-left:4px;"
+      >🗑️</button>
+    `}
+  </td>
+  <td class="task-name">${r.task}</td>
+  <td class="project">${r.proj}</td>
+  <td class="ttype">${r.ttype}</td>
+  ${cells}
+</tr>`;
     });
     const tc=DK.map((d,i)=>{const wk2=(i===6);return `<td class="hrs${wk2?' wknd':''}">${dt[d]||''}</td>`;}).join('');
     rows+=`<tr class="total-row"><td></td><td></td><td style="text-align:right;color:var(--muted);padding-right:8px;">Total work</td><td></td>${tc}</tr>`;
@@ -865,6 +880,38 @@ ${abar}
       </div>
     </div>`;
 }
+
+function deleteTaskRow(reqId){
+  if(!confirm('Remove this task from the current timesheet?')) return;
+
+  const w = wk(WO);
+  const reqs = getR();
+
+  const idx = reqs.findIndex(r =>
+    r.id === reqId &&
+    r.emp === CU.username &&
+    normalizeFriday(r.wk) === w
+  );
+
+  if(idx === -1){
+    showToast('Task not found.');
+    return;
+  }
+
+  // ✅ Prevent deleting tasks already sent
+  if(reqs[idx].sentWeek === w){
+    showToast('This task was already sent and cannot be deleted.');
+    return;
+  }
+
+  reqs.splice(idx, 1);
+
+  persistR(reqs).then(() => {
+    showToast('Task removed.');
+    renderTS();
+  });
+}
+
 function renderMyReqs(){
   const reqs=getR().filter(r=>r.emp===CU.username).sort((a,b)=>new Date(b.ca||0)-new Date(a.ca||0));
   let rows=reqs.length===0?`<div class="empty">No task requests yet.</div>`:'';
