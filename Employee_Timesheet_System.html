@@ -614,7 +614,7 @@ function renderHistoryTable(wk){
   const reqs = getR().filter(r =>
   r.emp === CU.username &&
   r.status === 'approved' &&
-  normalizeFriday(r.wk) === wk
+  r.sentWeek === wk
 );
 
 
@@ -778,6 +778,15 @@ function sv2(v){
   else if(v==='rq') renderMyReqs();
   else if(v==='hs') renderHistory(); // ✅ NEW
 }
+function getCheckedTaskIds(){
+  return Array.from(
+    document.querySelectorAll(
+      'table.ts tbody input[type="checkbox"]:checked'
+    )
+  ).map(cb => cb.closest('tr').querySelector('input[data-id]')?.dataset.id)
+   .filter(Boolean);
+}
+
 function renderTS(){
   const w=wk(WO),ds=getDates(WO);
   const reqs = getR().filter(r => {
@@ -974,11 +983,29 @@ function confirmSend(){
   const w = wk(WO);
   const tl = getT();
 
-  // ✅ get approved tasks
-  const reqs = getR().filter(r =>
-    r.emp === CU.username &&
-    r.status === 'approved'
-  );
+  const checkedIds = getCheckedTaskIds();
+
+if(checkedIds.length === 0){
+  showToast('Please select at least one task.');
+  return;
+}
+
+const reqs = getR().filter(r =>
+  r.emp === CU.username &&
+  r.status === 'approved' &&
+  checkedIds.includes(r.id)
+);
+// ✅ Mark selected requests as sent for this week
+const allReqs = getR();
+
+allReqs.forEach(r => {
+  if (checkedIds.includes(r.id)) {
+    r.sentWeek = w;                 // link to timesheet week
+    r.sentAt = new Date().toISOString();
+  }
+});
+
+setR(allReqs);
 
   // ✅ calculate total hours
   const th = reqs.reduce((s,r)=>
@@ -1006,6 +1033,9 @@ function confirmSend(){
 
   closeModal('sendModal');
   showToast('Timesheet submitted!');
+  document
+  .querySelectorAll('table.ts tbody input[type="checkbox"]')
+  .forEach(cb => cb.checked = false);
   renderTS();
 }
 function adminView(v){
