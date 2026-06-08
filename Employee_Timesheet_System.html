@@ -865,7 +865,16 @@ ${abar}
         <button class="wn-btn" onclick="changeWeek(-1)">&#9664;</button>
         <span class="wk-label">${wkShort(WO)}</span>
         <button class="wn-btn" onclick="changeWeek(1)">&#9654;</button>
-        <span class="badge ${!ts||ts.status==='draft'||( ts.status==='approved'&&!ts.sentAt)?'draft':ts.status}" style="margin-left:5px;">${!ts||ts.status==='draft'||(ts.status==='approved'&&!ts.sentAt)?'draft':ts.status}</span>
+        ${(() => {
+		  let badge = 'draft';
+
+		  if (ts) {
+			if (ts.status === 'sent') badge = 'sent';
+			else if (ts.status === 'approved' && ts.sentAt) badge = 'approved';
+		  }
+
+		  return `<span class="badge ${badge}">${badge}</span>`;
+		})()}
       </div>
     </div>
     <div class="ts-container">
