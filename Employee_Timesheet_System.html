@@ -815,7 +815,7 @@ function renderTS(){
     rows=`<tr><td colspan="${4+7}" style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">No approved tasks for this period. Go to <strong>My Requests</strong> and click the <strong>Add Request</strong> button.</td></tr>`;
   } else {
     reqs.forEach(r=>{
-      const isLocked = !!(ts && (ts.status === 'sent' || ts.status === 'approved'));
+      const isLocked = !!(ts && ts.status === 'sent');
       const cells=DK.map((d,i)=>{
         const h=r.hrs[d]||0;
         const wk2=(i===6);
