@@ -789,10 +789,12 @@ function getCheckedTaskIds(){
 
 function renderTS(){
   const w=wk(WO),ds=getDates(WO);
-  const reqs = getR().filter(r => {
-  return r.emp === CU.username &&
-         r.status === 'approved';
-});
+  const w = wk(WO), ds = getDates(WO);
+  const reqs = getR().filter(r =>
+  r.emp === CU.username &&
+  r.status === 'approved' &&
+  normalizeFriday(r.wk) === w
+);
 
   const ts=getT().find(t=>t.emp===CU.username&&t.wk===w);
   const allTS = getT().filter(t => t.emp === CU.username);
@@ -989,30 +991,78 @@ function submitTask(){
   const task = document.getElementById('fTask').value.trim();
   const proj = document.getElementById('fProj').value.trim();
   const ttype = document.getElementById('fType').value;
-  const wkv = wk(WO);
+  const startDate = document.getElementById('fStartDate').value;
+  const endDate   = document.getElementById('fEndDate').value;
   const err = document.getElementById('taskErr');
 
-  if (!wkv || wkv.includes('NaN')) { 
-	err.textContent = 'Invalid week detected.'; 
-  return;
-}
-  if(!task){err.textContent='Task name required.';return;}
-  if(!proj){err.textContent='Project name required.';return;}
-  if(!wkv){err.textContent='Week required.';return;}
-  const hrs={sun:0,mon:0,tue:0,wed:0,thu:0,fri:0,sat:0}; // hours entered by employee on timesheet
-  const reqs=getR();
-  if(ED){const i=reqs.findIndex(r=>r.id===ED);
-  const normWk2=wk(WO);
-    if(i>-1)reqs[i]={...reqs[i],task,proj,ttype,wk:normWk2,hrs,status:'pending',ua:new Date().toISOString()};showToast('Updated!');}
-  else{// Normalize wkv to the actual Friday of that week
-  const normWk = wk(WO);
-  reqs.push({id:'r'+Date.now(),emp:CU.username,empName:CU.name,task,proj,ttype,wk:wkv,hrs,status:'pending',ca:new Date().toISOString()});showToast('Request submitted!');}
+  // ── Basic validation ─────────────────────────────
+  if(!task){ err.textContent = 'Task name required.'; return; }
+  if(!proj){ err.textContent = 'Project name required.'; return; }
+  if(!startDate){ err.textContent = 'Start date required.'; return; }
+  if(!endDate){ err.textContent = 'End date required.'; return; }
+
+  // ── Determine the correct timesheet period from Start Date ──
+  const wkv = normalizeFriday(startDate);
+
+  if(!wkv || wkv.includes('NaN')){
+    err.textContent = 'Invalid period detected.';
+    return;
+  }
+
+  // Enforce: start & end must be in the SAME Fri–Thu period
+  if(normalizeFriday(endDate) !== wkv){
+    err.textContent = 'End date must be within the same timesheet period (Fri–Thu).';
+    return;
+  }
+
+  // ── Initialize hours ─────────────────────────────
+  const hrs = { sun:0, mon:0, tue:0, wed:0, thu:0, fri:0, sat:0 };
+  const reqs = getR();
+
+  // ── EDIT existing request ────────────────────────
+  if(ED){
+    const i = reqs.findIndex(r => r.id === ED);
+    if(i > -1){
+      reqs[i] = {
+        ...reqs[i],
+        task,
+        proj,
+        ttype,
+        wk: wkv,
+        hrs,
+        status: 'pending',
+        ua: new Date().toISOString()
+      };
+      showToast('Updated!');
+    }
+  }
+  // ── ADD new request ──────────────────────────────
+  else{
+    reqs.push({
+      id: 'r' + Date.now(),
+      emp: CU.username,
+      empName: CU.name,
+      task,
+      proj,
+      ttype,
+      wk: wkv,
+      hrs,
+      status: 'pending',
+      ca: new Date().toISOString()
+    });
+    showToast('Request submitted!');
+  }
+
+  // ── Persist & refresh UI ─────────────────────────
   showLoader('Saving request...');
-  persistR(reqs).then(()=>{
-    hideLoader();showToast(ED?'Request updated!':'Request submitted!');
-    closeModal('taskModal');if(CV==='ts')renderTS();else renderMyReqs();
+  persistR(reqs).then(() => {
+    hideLoader();
+    closeModal('taskModal');
+    if(CV === 'ts') renderTS();
+    else renderMyReqs();
   });
 }
+
 function saveTS(){showToast('Saved as draft.');}
 function openSendModal(){
   const w = wk(WO);
