@@ -1101,7 +1101,7 @@ function openSendModal(){
   document.getElementById('sendMsg').textContent=`Send your timesheet for the period "${wkLabel(WO)}" to the admin? Total hours: ${th}h`;
   document.getElementById('sendModal').classList.add('open');
 }
-function confirmSend(){
+async function confirmSend(){
   const w = wk(WO);
   const tl = getT();
 
