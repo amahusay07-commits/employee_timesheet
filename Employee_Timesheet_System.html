@@ -1229,7 +1229,18 @@ function dlOne(empUser,weekFri){
   // Build table rows HTML
   let trs='';
   reqs.forEach(r=>{
-    trs+=`<tr>${['',r.task,r.proj,r.ttype,...DK.map((d,i)=>{const h=r.hrs[d]||0;dayTotals[i]+=h;return h;})].map((v,ci)=>`<td style="padding:6px 10px;border:1px solid #d0d8e8;font-size:12px;${ci===0?'width:24px;':ci===1?'min-width:180px;':ci===3?'text-align:center;':ci>3?'text-align:center;font-family:monospace;':''}">${ci===0?'':''}${v}</td>`).join('')}</tr>`;
+    trs+=`<tr>${
+  [r.task,r.proj,r.ttype,...DK.map((d,i)=>{
+    const h=r.hrs[d]||0;
+    dayTotals[i]+=h;
+    return h;
+  })].map((v,ci)=>`<td style="
+    padding:6px 10px;
+    border:1px solid #d0d8e8;
+    font-size:12px;
+    ${ci>=3 ? 'text-align:center;font-family:monospace;' : ''}
+  ">${v}</td>`).join('')
+}</tr>`;
   });
   const totalCells=DK.map((d,i)=>`<td style="padding:6px 10px;border:1px solid #d0d8e8;text-align:center;font-family:monospace;font-weight:700;font-size:12px;">${dayTotals[i]||''}</td>`).join('');
 
