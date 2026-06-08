@@ -752,7 +752,11 @@ function initApp(){
       <a class="sid-item" id="sv-ts" onclick="sv('ts')">Timesheets</a>
       <a class="sid-item" id="sv-em" onclick="sv('em')">Employees</a>
     </div>`;
-    adminView('db');
+    
+	loadFromGist().then(() => {
+	  adminView('db');
+	});
+
   } else {
     document.getElementById('hdrTitle').textContent='Timesheet';
     document.getElementById('ribbon').style.display='block';
@@ -763,7 +767,10 @@ function initApp(){
 	  <a class="sid-item" id="sv-rq" onclick="sv2('rq')">My Requests</a>
 	  <a class="sid-item" id="sv-hs" onclick="sv2('hs')">Timesheet History</a>
 	</div>`;
-    renderTS();
+    loadFromGist().then(() => {
+	  renderTS();
+	});
+
   }
   } catch(e){ console.error('initApp error:',e); showBanner('App error: '+e.message,'#c8102e'); }
 }
@@ -1071,12 +1078,13 @@ function submitTask(){
 
   // ── Persist & refresh UI ─────────────────────────
   showLoader('Saving request...');
-  persistR(reqs).then(() => {
-    hideLoader();
-    closeModal('taskModal');
-    if(CV === 'ts') renderTS();
-    else renderMyReqs();
-  });
+  persistR(reqs).then(async () => {
+  await saveToGist('submitTask');   // ✅ SYNC TO GOOGLE SHEETS
+  hideLoader();
+  closeModal('taskModal');
+  if(CV === 'ts') renderTS();
+  else renderMyReqs();
+});
 }
 
 function saveTS(){showToast('Saved as draft.');}
@@ -1146,13 +1154,11 @@ setR(allReqs);
   else tl.push(entry);
 
   persistT(tl);
-
+  await saveToGist('confirmSend');   // ✅ SYNC TO GOOGLE SHEETS
   closeModal('sendModal');
   showToast('Timesheet submitted!');
-  document
-  .querySelectorAll('table.ts tbody input[type="checkbox"]')
-  .forEach(cb => cb.checked = false);
   renderTS();
+
 }
 function adminView(v){
   const reqs=getR(),tl=getT();
@@ -1206,20 +1212,29 @@ function appR(id){
     }
   }
 
-  persistR(r).then(() => {
-    showToast('Approved!');
-    adminView(CV);
-  }).catch(() => {});
+  persistR(r).then(async () => {
+  await saveToGist('adminApproveRequest');  // ✅ SYNC
+  showToast('Approved!');
+  adminView(CV);
+});
 }
 function appAll(){
   const r=getR();let n=0;
   r.forEach(x=>{if(x.status==='pending'){x.status='approved';x.approvedAt=new Date().toISOString();x.approvedBy=CU.name;n++;}});
-  persistR(r).then(()=>{showToast(n+' approved!');adminView(CV);}).catch(()=>{});
+  persistR(r).then(async ()=>{
+  await saveToGist('adminApproveAll');  // ✅ SYNC
+  showToast(n+' approved!');
+  adminView(CV);
+});
 }
 function appT(id){
   const tl=getT();const i=tl.findIndex(t=>t.id===id);
   if(i>-1){tl[i].status='approved';tl[i].approvedAt=new Date().toISOString();tl[i].approvedBy=CU.name;}
-  persistT(tl).then(()=>{showToast('Timesheet approved!');adminView(CV);}).catch(()=>{});
+  persistT(tl).then(async ()=>{
+  await saveToGist('adminApproveTS');   // ✅ SYNC
+  showToast('Timesheet approved!');
+  adminView(CV);
+});
 }
 function openRJ(id,type){RJID=id;RJTYPE=type;document.getElementById('rejectReason').value='';document.getElementById('rejectModal').classList.add('open');}
 function confirmReject(){
@@ -1235,7 +1250,11 @@ function confirmReject(){
     savePromise = persistR(r);
   }
   closeModal('rejectModal');
-  savePromise.then(()=>{showToast('Rejected.');adminView(CV);}).catch(()=>{});
+  savePromise.then(async ()=>{
+  await saveToGist('adminReject');   // ✅ SYNC
+  showToast('Rejected.');
+  adminView(CV);
+});
 }
 function updateHrs(inputEl){
   const reqId  = inputEl.getAttribute('data-id');
