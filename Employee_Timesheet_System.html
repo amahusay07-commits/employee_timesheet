@@ -1068,7 +1068,8 @@ function openSendModal(){
   const w = wk(WO);
   const reqs = getR().filter(r =>
   r.emp === CU.username &&
-  r.status === 'approved'
+  r.status === 'approved' &&
+  normalizeFriday(r.wk) === w
 );
 
   if(reqs.length===0){showToast('No approved tasks to send.');return;}
@@ -1087,11 +1088,13 @@ if(checkedIds.length === 0){
   return;
 }
 
-const reqs = getR().filter(r =>
+  const reqs = getR().filter(r =>
   r.emp === CU.username &&
   r.status === 'approved' &&
+  normalizeFriday(r.wk) === w &&
   checkedIds.includes(r.id)
 );
+
 // ✅ Mark selected requests as sent for this week
 const allReqs = getR();
 
