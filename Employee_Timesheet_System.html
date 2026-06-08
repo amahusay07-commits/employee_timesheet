@@ -1639,9 +1639,8 @@ function adminSaveTask(){
   }
 
 
-  // Normalize to Friday
-  const wkDate = new Date(wkv+'T12:00:00');
-  const normWk = iso(wkDate);
+  // Normalize to Friday using start date
+  const normWk = normalizeFriday(startDate);
 
   const empData = USERS[empUser];
   const reqs = getR();
@@ -1650,7 +1649,7 @@ function adminSaveTask(){
     emp: empUser,
     empName: empData ? empData.name : empUser,
     task, proj, ttype,
-    wk: wkv,
+    wk: normWk,
     hrs: {sun:0,mon:0,tue:0,wed:0,thu:0,fri:0,sat:0},
     status: 'approved',
     approvedAt: new Date().toISOString(),
